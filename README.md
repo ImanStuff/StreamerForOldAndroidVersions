@@ -77,6 +77,6 @@ daphne -b 0.0.0.0 -p 8000 django_core.asgi:application
 or you can use supervisor combined with other things like gunicorn + uvicorn.
 
 
-Visit http://<server-ip>:8000/ to see added movies and stream them.
-Visit http://<server-ip>:8000/admin and add new videos there. 
+Visit http://server-ip:8000/ to see added movies and stream them.
+Visit http://server-ip:8000/admin and add new videos there. 
 just movie name and movie download url are required.
