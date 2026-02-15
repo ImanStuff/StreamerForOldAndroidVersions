@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TV Streamer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            margin: 0; 
+            padding: 0;
+            background-color: #121212; 
+            color: #eee;
+            font-family: sans-serif;
+        }
+        .top-bar {
+            background: #222;
+            padding: 15px;
+            border-bottom: 2px solid #D32F2F;
+            height: 50px;
+        }
+        .top-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            float: left;
+            line-height: 20px;
+        }
+        .top-stats {
+            float: right;
+            font-size: 14px;
+            color: #aaa;
+            line-height: 20px;
+        }
+        .container {
+            padding: 20px;
+            text-align: center;
+        }
+        .video-card {
+            display: inline-block;
+            vertical-align: top;
+            width: 260px;
+            margin: 10px;
+            background: #333;
+            border: 2px solid #444;
+            border-radius: 4px;
+            text-align: left;
+            position: relative;
+        }
+        .card-thumb {
+            height: 145px;
+            background: #000;
+            position: relative;
+            border-bottom: 1px solid #444;
+        }
+        .play-icon {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 50px; height: 50px;
+            margin-left: -25px; margin-top: -25px;
+            font-size: 30px;
+            line-height: 50px;
+            text-align: center;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+        }
+        .card-info { padding: 10px; }
+        .card-title {
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            height: 20px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        .card-meta { font-size: 12px; color: #bbb; margin-bottom: 8px; }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            font-size: 10px;
+            background: #666;
+            color: white;
+            border-radius: 2px;
+            text-transform: uppercase;
+        }
+        .st-completed { background: #388E3C; }
+        .st-downloading { background: #1976D2; }
+        .st-error { background: #D32F2F; }
+        .action-btn {
+            display: block;
+            width: 100%;
+            padding: 10px 0;
+            margin-top: 5px;
+            background: #D32F2F;
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+        }
+        .action-btn:active { background: #b71c1c; }
+        .video-card.focused {
+            border-color: #FFEB3B;
+            transform: scale(1.05);
+            z-index: 10;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+        }
+        .video-card.focused .action-btn { background: #FFEB3B; color: black; }
+        .no-videos {
+            padding: 50px;
+            color: #888;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="top-title">Streamer</div>
+        <div class="top-stats">
+            Videos: {{ videos|length }} | 
+            Storage: {{ total_size|filesizeformat }}
+        </div>
+    </div>
+
+    <div class="container">
+        {% if videos %}
+            {% for video in videos %}
+            <div class="video-card nav-item" id="vid-{{ video.id }}">
+                <div class="card-thumb">
+                    <div class="play-icon">▶</div>
+                </div>
+                
+                <div class="card-info">
+                    <span class="status-badge st-{{ video.status }}">
+                        {{ video.get_status_display }}
+                    </span>
+                    <div class="card-title">{{ video.title }}</div>
+                    <div class="card-meta">
+                        {{ video.duration_human }} | {{ video.file_size_human }}
+                    </div>
+                    {% if video.status == 'completed' %}
+                        <a href="{% url 'stream_video' video.id %}" class="action-btn" target="_blank">
+                            PLAY VIDEO
+                        </a>
+                    {% else %}
+                        <a href="/admin/videos/video/{{ video.id }}/download/" class="action-btn" style="background:#444;">
+                            DOWNLOAD
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="no-videos">
+                <h3>No Videos Found in Database</h3>
+                <p>Please add videos via <a href="/admin" style="color:#D32F2F">Admin Panel</a></p>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        (function() {
+            var cards = document.querySelectorAll('.video-card');
+            var index = 0;
+            if(cards.length > 0) {
+                cards[0].className += " focused";
+            }
+            document.addEventListener('keydown', function(e) {
+                var code = e.keyCode;
+                
+                // 37=left, 38=up, 39=right, 40=down, 13=enter, 23=center/OK
+                if (code === 37 || code === 38 || code === 39 || code === 40 || code === 13 || code === 23) {
+                    if(cards[index]) {
+                        cards[index].className = cards[index].className.replace(" focused", "");
+                    }
+                    if (code === 37) {
+                        if(index > 0) index--;
+                    }
+                    else if (code === 39) { 
+                        if(index < cards.length - 1) index++;
+                    }
+                    else if (code === 38) {
+                        if(index - 3 >= 0) index -= 3;
+                    }
+                    else if (code === 40) {
+                        if(index + 3 < cards.length) index += 3;
+                    }
+                    else if (code === 13 || code === 23) {
+                        e.preventDefault();
+                        var link = cards[index].querySelector('a');
+                        if(link) {
+                            window.location.href = link.href;
+                        }
+                    }
+                    if(cards[index]) {
+                        cards[index].className += " focused";
+                        var rect = cards[index].getBoundingClientRect();
+                        if(rect.bottom > window.innerHeight) {
+                            window.scrollBy(0, 200);
+                        } else if(rect.top < 0) {
+                            window.scrollBy(0, -200);
+                        }
+                    }
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

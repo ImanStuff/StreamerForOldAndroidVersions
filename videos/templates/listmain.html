@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Media Server - Videos</title>
+    <style>
+        /* Previous CSS styles remain the same */
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .video-card { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; transition: transform 0.2s; }
+        .video-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .video-thumbnail { background: #333; height: 180px; display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; }
+        .video-info { padding: 15px; }
+        .video-title { font-weight: bold; margin-bottom: 10px; color: #333; }
+        .video-meta { font-size: 12px; color: #666; margin-bottom: 10px; }
+        .video-actions { display: flex; gap: 10px; margin-top: 15px; }
+        .btn { padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; }
+        .btn-play { background: #4CAF50; color: white; flex: 2; }
+        .btn-delete { background: #f44336; color: white; flex: 1; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #eee; }
+        .admin-link { background: #2196F3; color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none; }
+        .stats { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #3498db; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 Media Server</h1>
+            <div>
+                <a href="/admin" class="admin-link">Admin Panel</a>
+                <a href="/admin/videos/video/add/" class="admin-link" style="margin-left: 10px;">Add Video</a>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <p>Total Videos: {{ total_videos }} | Completed: {{ completed_videos }}</p>
+            <p>Storage Used: {{ total_size|filesizeformat }}</p>
+        </div>
+        
+        {% if videos %}
+            <div class="video-grid">
+                {% for video in videos %}
+                <div class="video-card">
+                    <div class="video-thumbnail">
+                        🎥
+                    </div>
+                    <div class="video-info">
+                        <div class="status-badge status-{{ video.status }}" style="display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 12px; color: white; background: 
+                            {% if video.status == 'completed' %}green
+                            {% elif video.status == 'downloading' %}blue
+                            {% elif video.status == 'error' %}red
+                            {% else %}gray{% endif %};">
+                            {{ video.get_status_display }}
+                        </div>
+                        <div class="video-title">{{ video.title }}</div>
+                        <div class="video-meta">
+                            📁 {{ video.file_size_human }}<br>
+                            ⏱️ {{ video.duration_human }}<br>
+                            📅 {{ video.created_at|date:"M d, Y" }}
+                        </div>
+                        <div class="video-actions">
+                            {% if video.status == 'completed' %}
+                            <a href="{% url 'stream_video' video.id %}" class="btn btn-play" target="_blank">
+                                ▶ Play
+                            </a>
+                            {% elif video.status == 'pending' or video.status == 'error' %}
+                            <a href="/admin/videos/video/{{ video.id }}/download/" class="btn btn-play">
+                                ⬇ Download
+                            </a>
+                            {% endif %}
+                            
+                            {% if user.is_authenticated %}
+                            <form action="{% url 'delete_video' video.id %}" method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-delete" onclick="return confirm('Delete this video and all files?')">
+                                    🗑️
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="text-align: center; padding: 40px; color: #666;">
+                <p style="font-size: 18px;">No videos available.</p>
+                <p>Add videos from the <a href="/admin">Admin Panel</a></p>
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
