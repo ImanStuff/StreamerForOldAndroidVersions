@@ -8,6 +8,7 @@ import subprocess
 from django.db import transaction
 from django.core.files import File
 from urllib.parse import urlparse
+from requests.exceptions import SSLError
 from .models import Video
 
 logger = logging.getLogger(__name__)
@@ -138,6 +139,7 @@ class VideoDownloadManager:
                     mode = 'ab'
                     logger.info(f"Resuming download from {downloaded_size} bytes")
             
+            headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             retries = 0
             while retries < max_retries:
                 try:
@@ -158,6 +160,30 @@ class VideoDownloadManager:
                                     f.write(chunk)
                         break
                 
+                except SSLError:
+                    logger.warning('SSLError.')
+                    retries += 1
+                    time.sleep(1)
+                    try:
+                        with requests.get(video.download_url, headers=headers, stream=True, verify=False, timeout=(99999, 99999)) as response:
+                            if response.status_code == 416:
+                                logger.info("Download already complete (server reported 416).")
+                                break
+                            if headers.get('Range') and response.status_code == 200:
+                                logger.warning("Server doesn't support resume, restarting download")
+                                mode = 'wb'
+                                headers = {}
+                            
+                            response.raise_for_status()
+                            
+                            with open(temp_path, mode) as f:
+                                for chunk in response.iter_content(chunk_size=8192):
+                                    if chunk:
+                                        f.write(chunk)
+                            break
+                    except Exception as e2:
+                        logger.error(f"Even with verify=False: {e2}")
+
                 except (requests.exceptions.RequestException, requests.exceptions.Timeout) as e:
                     retries += 1
                     logger.warning(f"Network error: {e}. Retrying ({retries}/{max_retries})...")

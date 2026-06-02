@@ -1,5 +1,0 @@
-aiofiles
-daphne
-Django
-requests
-whitenoise

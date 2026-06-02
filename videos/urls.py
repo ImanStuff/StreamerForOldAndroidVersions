@@ -13,6 +13,10 @@ urlpatterns = [
     path('video/<uuid:video_id>/status/', 
         views.check_download_status, 
         name='check_download_status'),
+    path('movie-proxy/', views.movie_proxy, name='movie_proxy'),
+    path('test-movie/', views.tv_remote_view, name='tv_remote_view_'),
+    path('video/<uuid:video_id>/play/', views.play_video, name='play_video'),
+    path('video/<uuid:video_id>/log-time/', views.log_video_time, name='log_video_time'),
 ]
 
 if settings.DEBUG:

@@ -1,36 +1,44 @@
 import os
+import json
 import asyncio
+import requests
 import aiofiles
 import mimetypes
-from django.conf import settings
-from django.db.models import Sum
-from django.contrib import messages
+from bs4 import BeautifulSoup
+from django.utils.html import escape
 from asgiref.sync import sync_to_async
 from django.shortcuts import render, redirect
-from django.http import StreamingHttpResponse, HttpResponse, HttpRequest, JsonResponse
-from .models import Video
+from django.views.decorators.csrf import csrf_exempt
+from django.http import FileResponse, StreamingHttpResponse, HttpResponse, HttpRequest, JsonResponse
+from django.contrib.auth.decorators import user_passes_test
+from django.db.models import Sum
+from django.contrib import messages
+from django.conf import settings
+from .models import Video, Logging
 from .manager import video_manager
 
 
-async def a_path_exists(path: str) -> bool:
+async def a_path_exists(path):
     return await sync_to_async(os.path.exists)(path)
 
-async def video_list(request: HttpRequest) -> HttpResponse:
+async def video_list(request: HttpRequest):
     videos = Video.objects.all().order_by('-created_at')
     total_videos = await videos.acount()
     completed_videos = await videos.filter(status='completed').acount()
     total_size_task = await videos.aaggregate(total=Sum('file_size'))
     videos = [video async for video in videos]
+    last_video = await sync_to_async(lambda: Logging.objects.select_related('video').order_by('-updated').first())()
     context = {
         'videos': videos,
         'total_videos': total_videos,
         'completed_videos': completed_videos,
         'total_size': total_size_task['total'] or 0,
-        'user': await request.auser()
+        'user': await request.auser(),
+        'last_video': last_video
     }
     return render(request, './list.html', context)
 
-async def video_detail(request: HttpRequest, video_id: int) -> JsonResponse:
+async def video_detail(request: HttpRequest, video_id: int):
     try:
         video = await Video.objects.aget(id=video_id)
     except Video.DoesNotExist:
@@ -40,7 +48,7 @@ async def video_detail(request: HttpRequest, video_id: int) -> JsonResponse:
         'title': video.title or '',
         'description': video.description or '',
     })
-async def stream_video(request: HttpRequest, video_id: int) -> HttpResponse | StreamingHttpResponse:
+async def stream_video(request: HttpRequest, video_id: int):
     try:
         video = await Video.objects.aget(id=video_id)
     except Video.DoesNotExist: return HttpResponse("Video not found", status=404)
@@ -60,7 +68,6 @@ async def stream_video(request: HttpRequest, video_id: int) -> HttpResponse | St
     async def stream(file_path, start, length):
         async for chunk in file_chunk_generator(file_path, start, length):
             yield chunk
-
     
     if range_header.startswith('bytes='):
         range_bytes = range_header[6:].split('-')
@@ -96,7 +103,7 @@ async def stream_video(request: HttpRequest, video_id: int) -> HttpResponse | St
     
     return response
 
-async def file_chunk_generator(file_path: str, start: int, length: int, chunk_size: int=8192):
+async def file_chunk_generator(file_path, start, length, chunk_size=8192):
     async with aiofiles.open(file_path, 'rb') as f:
         await f.seek(start)
         remaining = length
@@ -110,7 +117,7 @@ async def file_chunk_generator(file_path: str, start: int, length: int, chunk_si
             await asyncio.sleep(0.0001)  
             yield chunk
 
-async def delete_video(request: HttpRequest, video_id: int) -> HttpResponse:
+async def delete_video(request: HttpRequest, video_id: int):
     user = await request.auser()
     if not user.is_authenticated:
         return HttpResponse("No authenticated user found!", status=400)
@@ -126,7 +133,29 @@ async def delete_video(request: HttpRequest, video_id: int) -> HttpResponse:
     return redirect('video_list')
 
 
-async def check_download_status(request: HttpRequest, video_id: int) -> HttpResponse | JsonResponse:
+async def admin_tools(request: HttpRequest):
+    user = await request.auser()
+    if not user.is_staff:
+        return HttpResponse("Forbiden!", status=403)
+    videos = await sync_to_async(Video.objects.all)()
+    stats_data = await videos.aaggregate(
+        total_size=Sum('file_size')
+    )
+    stats = {
+        'total': await videos.acount(),
+        'completed': await videos.filter(status='completed').acount(),
+        'downloading': await videos.filter(status='downloading').acount(),
+        'pending': await videos.filter(status='pending').acount(),
+        'error': await videos.filter(status='error').acount(),
+        'total_size': stats_data['total_size'] or 0,
+        'storage_path': settings.STORAGE_SERVER_PATH,
+    }
+    
+    return render(request, './admin_tools.html', {'stats': stats})
+
+
+
+async def check_download_status(request: HttpRequest, video_id: int) -> JsonResponse:
     user = await request.auser()
     if not user.is_staff:
         return HttpResponse("Forbiden!", status=403)
@@ -158,3 +187,105 @@ async def check_download_status(request: HttpRequest, video_id: int) -> HttpResp
         'updated_at': video.updated_at.isoformat(),
         'error_message': video.error_message,
     })
+
+
+@csrf_exempt
+async def movie_proxy(request: HttpRequest) -> HttpResponse:
+    url = request.GET.get('url')
+    if not url or not url.startswith(('http://', 'https://')):
+        return HttpResponse("Invalid URL", status=400)
+    
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 4.4.2; Nexus 4 Build/KOT49H) AppleWebKit/537.36'
+        }
+        resp = await asyncio.to_thread(requests.get, url, headers=headers, timeout=15)
+        
+        soup = BeautifulSoup(resp.text, 'html.parser')
+
+        soup = await asyncio.to_thread(android44_safe, soup)
+        soup = await asyncio.to_thread(proxy_links, soup, request)
+        html = str(soup)
+        return HttpResponse(html, content_type='text/html; charset=utf-8')
+        
+    except Exception as e:
+        return HttpResponse(f"Error: {str(e)}", status=500)
+
+
+def android44_safe(soup: BeautifulSoup):
+    for script in soup.find_all('script', src=True):
+        if any(x in script['src'] for x in ['es6', 'module', 'webgl', 'webrtc']):
+            script.decompose()
+    
+    css = """
+    * { box-sizing: border-box; }
+    body { font-family: Arial,sans-serif; margin: 0; padding: 20px; background: #000; color: #fff; }
+    .movie-poster { max-width: 100%; height: auto; }
+    .movie-grid { display: block; }
+    .movie-item { margin: 20px 0; padding: 15px; background: #222; border-radius: 8px; }
+    .play-btn { background: #e50914; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-size: 16px; }
+    video { width: 100%; max-width: 800px; height: auto; }
+    @media (max-width: 600px) { body { padding: 10px; } }
+    """
+    
+    style = soup.new_tag('style')
+    style.string = css
+    soup.head.insert(0, style)
+    
+    return soup
+
+def proxy_links(soup: BeautifulSoup, request: HttpRequest):
+    proxy_base = request.build_absolute_uri('/movie-proxy?url=')
+    
+    for a in soup.find_all('a', href=True):
+        a['href'] = f"{proxy_base}{a['href']}"
+    
+    for img in soup.find_all('img', src=True):
+        img['src'] = f"{proxy_base}{img['src']}"
+    
+    for source in soup.find_all('source', src=True):
+        source['src'] = f"{proxy_base}{source['src']}"
+    
+    return soup
+
+
+async def tv_remote_view(request: HttpRequest) -> HttpResponse:
+    return render(request, "./tv-remote.html")
+
+
+async def play_video(request: HttpRequest, video_id: str):
+    try:
+        video = await Video.objects.aget(id=video_id)
+    except Video.DoesNotExist:
+        return HttpResponse("Video not found", status=404)
+
+    log_obj = await Logging.objects.filter(video=video).afirst()
+    if request.GET.get('restart') == '1':
+        start_time = 0.0
+        if log_obj:
+            log_obj.watched_time = 0.0
+            await log_obj.asave()
+    else:
+        start_time = log_obj.watched_time if log_obj else 0.0
+
+    return render(request, './player.html', {
+        'video': video,
+        'start_time': start_time
+    })
+
+@csrf_exempt
+async def log_video_time(request: HttpRequest, video_id: str):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            current_time = float(data.get('time', 0))
+            log = await Logging.objects.filter(video_id=video_id).afirst()
+            if not log:
+                await Logging.objects.acreate(video_id=video_id, watched_time=current_time)
+            else:
+                log.watched_time = current_time
+                await log.asave(update_fields=['watched_time', 'updated'])
+            return JsonResponse({'status': 'ok'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'bad request'}, status=400)

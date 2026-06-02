@@ -11,10 +11,12 @@
             color: #eee;
             font-family: sans-serif;
         }
+
+        /* TOP BAR */
         .top-bar {
             background: #222;
             padding: 15px;
-            border-bottom: 2px solid #D32F2F;
+            border-bottom: 2px solid #D32F2F; /* Red accent */
             height: 50px;
         }
         .top-title {
@@ -30,6 +32,8 @@
             color: #aaa;
             line-height: 20px;
         }
+
+        /* CONTAINER */
         .container {
             padding: 20px;
             text-align: center;
@@ -45,6 +49,8 @@
             text-align: left;
             position: relative;
         }
+
+        /* THUMBNAIL AREA */
         .card-thumb {
             height: 145px;
             background: #000;
@@ -63,6 +69,8 @@
             background: rgba(0,0,0,0.5);
             border-radius: 50%;
         }
+
+        /* INFO AREA */
         .card-info { padding: 10px; }
         .card-title {
             color: white;
@@ -85,9 +93,11 @@
             border-radius: 2px;
             text-transform: uppercase;
         }
-        .st-completed { background: #388E3C; }
-        .st-downloading { background: #1976D2; }
-        .st-error { background: #D32F2F; }
+        .st-completed { background: #388E3C; } /* Green */
+        .st-downloading { background: #1976D2; } /* Blue */
+        .st-error { background: #D32F2F; } /* Red */
+
+        /* BUTTONS */
         .action-btn {
             display: block;
             width: 100%;
@@ -103,6 +113,7 @@
             border: none;
         }
         .action-btn:active { background: #b71c1c; }
+
         .video-card.focused {
             border-color: #FFEB3B;
             transform: scale(1.05);
@@ -110,6 +121,8 @@
             box-shadow: 0 0 15px rgba(0,0,0,0.8);
         }
         .video-card.focused .action-btn { background: #FFEB3B; color: black; }
+
+        /* ERROR MSG */
         .no-videos {
             padding: 50px;
             color: #888;
@@ -128,10 +141,35 @@
     </div>
 
     <div class="container">
+        <div class="video-card nav-item">
+            <div class="card-thumb" style="background: #111;">
+                <div class="play-icon" style="background: transparent; font-size: 40px; margin-top: -30px;">🌐</div>
+            </div>
+            
+            <div class="card-info">
+                <span class="status-badge st-completed" style="background: #1976D2;">
+                    TOOLS
+                </span>
+                <div class="card-title">Movie Proxy Portal</div>
+                <div class="card-meta">
+                    Tools you may need
+                </div>
+
+                <a href="{% url 'tv_remote_view_' %}" class="action-btn" style="background:#1976D2;">
+                    OPEN PORTAL
+                </a>
+                {% if last_video %}
+                    <a href="{% url 'play_video' last_video.video.id %}" class="action-btn" target="_blank">Do you want to see "{{last_video.video.title}}" again? click here</a>
+                {% endif %}
+            </div>
+        </div>
         {% if videos %}
             {% for video in videos %}
             <div class="video-card nav-item" id="vid-{{ video.id }}">
                 <div class="card-thumb">
+                    {% if video.thumbnail %}
+                        <img src="{{video.thumbnail.url}}" alt="" style="width: 260px; height: 145px;">
+                    {% endif %}
                     <div class="play-icon">▶</div>
                 </div>
                 
@@ -143,10 +181,16 @@
                     <div class="card-meta">
                         {{ video.duration_human }} | {{ video.file_size_human }}
                     </div>
+
                     {% if video.status == 'completed' %}
-                        <a href="{% url 'stream_video' video.id %}" class="action-btn" target="_blank">
-                            PLAY VIDEO
-                        </a>
+                        <div style="font-size: 0;">
+                            <a href="{% url 'play_video' video.id %}" class="action-btn" style="display:inline-block; width:48%;" target="_blank">
+                                RESUME / PLAY
+                            </a>
+                            <a href="{% url 'play_video' video.id %}?restart=1" class="action-btn" style="display:inline-block; width:48%; margin-left:4%; background:#607D8B;" target="_blank">
+                                RESTART
+                            </a>
+                        </div>
                     {% else %}
                         <a href="/admin/videos/video/{{ video.id }}/download/" class="action-btn" style="background:#444;">
                             DOWNLOAD
@@ -173,30 +217,32 @@
             document.addEventListener('keydown', function(e) {
                 var code = e.keyCode;
                 
-                // 37=left, 38=up, 39=right, 40=down, 13=enter, 23=center/OK
+                // 37=Left, 38=Up, 39=Right, 40=Down, 13=Enter, 23=Center/OK
                 if (code === 37 || code === 38 || code === 39 || code === 40 || code === 13 || code === 23) {
                     if(cards[index]) {
                         cards[index].className = cards[index].className.replace(" focused", "");
                     }
-                    if (code === 37) {
+
+                    if (code === 37) { // Left
                         if(index > 0) index--;
                     }
-                    else if (code === 39) { 
+                    else if (code === 39) { // Right
                         if(index < cards.length - 1) index++;
                     }
-                    else if (code === 38) {
+                    else if (code === 38) { // Up
                         if(index - 3 >= 0) index -= 3;
                     }
-                    else if (code === 40) {
+                    else if (code === 40) { // Down
                         if(index + 3 < cards.length) index += 3;
                     }
-                    else if (code === 13 || code === 23) {
+                    else if (code === 13 || code === 23) { // Enter
                         e.preventDefault();
                         var link = cards[index].querySelector('a');
                         if(link) {
                             window.location.href = link.href;
                         }
                     }
+
                     if(cards[index]) {
                         cards[index].className += " focused";
                         var rect = cards[index].getBoundingClientRect();

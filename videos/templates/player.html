@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Watching: {{ video.title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body { margin: 0; background: black; color: white; overflow: hidden; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
+        .header { background: #111; padding: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #D32F2F; }
+        .back-btn { color: white; text-decoration: none; font-size: 16px; background: #333; padding: 6px 15px; border-radius: 4px; font-weight: bold;}
+        .title { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
+        .player-container { flex: 1; display: flex; justify-content: center; align-items: center; background: #000; }
+        video { width: 100%; max-height: 100%; outline: none; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="{% url 'video_list' %}" class="back-btn">&larr; BACK</a>
+        <div class="title">{{ video.title }}</div>
+    </div>
+    
+    <div class="player-container">
+        <video id="vidPlayer" controls autoplay preload="metadata">
+            <source src="{% url 'stream_video' video.id %}" type="video/mp4">
+            Your browser does not support HTML5 video.
+        </video>
+    </div>
+
+    <script>
+        var player = document.getElementById('vidPlayer');
+        var startTime = parseFloat("{{ start_time|default:'0' }}");
+        var hasSetTime = false;
+
+        player.addEventListener('loadedmetadata', function() {
+            if (!hasSetTime && startTime > 0) {
+                player.currentTime = startTime;
+                hasSetTime = true;
+            }
+        });
+
+        setInterval(function() {
+            if (!player.paused && player.currentTime > 0) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("POST", "{% url 'log_video_time' video.id %}", true);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.send(JSON.stringify({ time: player.currentTime }));
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

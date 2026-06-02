@@ -125,3 +125,15 @@ class Video(models.Model):
             return f"{minutes}m {seconds}s"
         else:
             return f"{seconds}s"
+
+
+
+class Logging(models.Model):
+    id = models.AutoField(primary_key=True)
+    video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name="logger_video")
+    watched_time = models.FloatField(default=0.0)
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"name: {self.video.title} (time: {self.watched_time}s)"
