@@ -220,7 +220,25 @@
                 initialCards[0].className += " focused";
             }
 
+            var hidden, visibilityChange;
+            if (typeof document.hidden !== "undefined") {
+                hidden = "hidden";
+                visibilityChange = "visibilitychange";
+            } else if (typeof document.webkitHidden !== "undefined") {
+                hidden = "webkitHidden";
+                visibilityChange = "webkitvisibilitychange";
+            } else if (typeof document.msHidden !== "undefined") {
+                hidden = "msHidden";
+                visibilityChange = "msvisibilitychange";
+            } else if (typeof document.mozHidden !== "undefined") {
+                hidden = "mozHidden";
+                visibilityChange = "mozvisibilitychange";
+            }
             function refreshData() {
+                if (hidden && document[hidden]) {
+                    return;
+                }
+
                 var xhr = new XMLHttpRequest();
                 xhr.open('GET', '?format=json', true);
                 xhr.onreadystatechange = function() {
@@ -308,6 +326,14 @@
                     }
                 }
             }
+            if (visibilityChange) {
+                document.addEventListener(visibilityChange, function() {
+                    if (!document[hidden]) {
+                        refreshData();
+                    }
+                }, false);
+            }
+
             setInterval(refreshData, 3000);
 
             document.addEventListener('keydown', function(e) {

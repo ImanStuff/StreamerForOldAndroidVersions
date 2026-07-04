@@ -22,7 +22,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Windows"
+Windows:
 ```bash
 python -m venv venv
 .\venv\Scripts\activate
@@ -44,7 +44,7 @@ mkdir -p /mnt/storage_server/{media,databases,logs}
 
 Windows:
 ```bash
-mkdir D:\storage_server\media, D:\storage_server\databases, D:\storage_server\logs -Force
+New-Item -ItemType Directory -Force -Path "D:\storage_server\media", "D:\storage_server\databases", "D:\storage_server\logs"
 ```
 
 5- Install ffmpeg:
@@ -82,7 +82,7 @@ Visit http://server-ip:8000/admin and add new videos there.
 just movie name and movie download url are required.
 
 # Notes
-Last situations in the country, left us with expired SSLs.
-It is not good update, but the code handles it now.
-Also, we have new logging; It can now resume the movie from wherever you watched.
-The UI was developed and updated by AI.
+- **Expired SSL Support**: The download manager uses a legacy SSL context adapter to safely bypass connections to video servers that may have expired or legacy certificate configurations.
+- **Auto Thumbnail & Metadata Extraction**: You only need to paste the download URL. The background system automatically uses FFmpeg to capture a high-quality thumbnail frame and leverages FFprobe to populate the video duration automatically on download completion.
+- **Resume Watch Position**: The custom local logging records your playback progress every 5 seconds. If you return to the index page, you can resume watching from exactly where you left off.
+- **Resource-Efficient Polling**: The index page dynamically auto-refreshes to show download progress in real-time. For older TV hardware, the system utilizes the Page Visibility API to automatically pause polling requests to the server while you are watching a movie in a different tab, immediately resuming sync once you return.

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class VideoStorage(FileSystemStorage):
     def __init__(self):
-        super().__init__(location=settings.STORAGE_SERVER_PATH)
+        super().__init__(location=settings.MEDIA_ROOT)
         
 
 class Video(models.Model):
@@ -55,7 +55,7 @@ class Video(models.Model):
     
     def get_absolute_path(self):
         if self.video_file:
-            return os.path.join(settings.STORAGE_SERVER_PATH, self.video_file.name)
+            return os.path.join(settings.MEDIA_ROOT, self.video_file.name)
         return None
     
     def get_video_url(self):
@@ -78,7 +78,7 @@ class Video(models.Model):
     def delete_thumbnail_file(self):
         if self.thumbnail:
             try:
-                thumbnail_path = os.path.join(settings.STORAGE_SERVER_PATH, self.thumbnail.name)
+                thumbnail_path = os.path.join(settings.MEDIA_ROOT, self.thumbnail.name)
                 if os.path.exists(thumbnail_path):
                     os.remove(thumbnail_path)
                     logger.info(f"Deleted thumbnail: {thumbnail_path}")
