@@ -10,7 +10,7 @@ from asgiref.sync import sync_to_async
 from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.http import FileResponse, StreamingHttpResponse, HttpResponse, HttpRequest, JsonResponse
-from django.contrib.auth.decorators import user_passes_test
+from django.template.defaultfilters import filesizeformat
 from django.db.models import Sum
 from django.contrib import messages
 from django.conf import settings
@@ -26,13 +26,41 @@ async def video_list(request: HttpRequest):
     total_videos = await videos.acount()
     completed_videos = await videos.filter(status='completed').acount()
     total_size_task = await videos.aaggregate(total=Sum('file_size'))
+    total_size = total_size_task['total'] or 0
+
+    if request.GET.get('format') == 'json':
+        video_list_data = []
+        async for video in videos:
+            thumbnail_url = ""
+            if video.thumbnail:
+                try:
+                    thumbnail_url = video.thumbnail.url
+                except ValueError:
+                    pass
+                
+            video_list_data.append({
+                'id': str(video.id),
+                'title': video.title,
+                'status': video.status,
+                'status_display': video.get_status_display(),
+                'duration_human': video.duration_human,
+                'file_size_human': video.file_size_human,
+                'thumbnail_url': thumbnail_url,
+            })
+        return JsonResponse({
+            'videos': video_list_data,
+            'total_videos': total_videos,
+            'completed_videos': completed_videos,
+            'total_size_human': filesizeformat(total_size),
+        })
+
     videos = [video async for video in videos]
     last_video = await sync_to_async(lambda: Logging.objects.select_related('video').order_by('-updated').first())()
     context = {
         'videos': videos,
         'total_videos': total_videos,
         'completed_videos': completed_videos,
-        'total_size': total_size_task['total'] or 0,
+        'total_size': total_size,
         'user': await request.auser(),
         'last_video': last_video
     }

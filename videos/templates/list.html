@@ -4,6 +4,7 @@
     <title>TV Streamer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
+        /* RESET & BASE */
         body { 
             margin: 0; 
             padding: 0;
@@ -36,10 +37,12 @@
         /* CONTAINER */
         .container {
             padding: 20px;
-            text-align: center;
+            text-align: center; /* Centers the inline-blocks */
         }
+
+        /* VIDEO CARD (Android 4.4 Safe) */
         .video-card {
-            display: inline-block;
+            display: inline-block; /* The key fix for old Android */
             vertical-align: top;
             width: 260px;
             margin: 10px;
@@ -114,9 +117,10 @@
         }
         .action-btn:active { background: #b71c1c; }
 
+        /* FOCUS STATE (Remote Control) */
         .video-card.focused {
-            border-color: #FFEB3B;
-            transform: scale(1.05);
+            border-color: #FFEB3B; /* Yellow border */
+            transform: scale(1.05); /* Zoom effect */
             z-index: 10;
             box-shadow: 0 0 15px rgba(0,0,0,0.8);
         }
@@ -135,13 +139,13 @@
     <div class="top-bar">
         <div class="top-title">Streamer</div>
         <div class="top-stats">
-            Videos: {{ videos|length }} | 
-            Storage: {{ total_size|filesizeformat }}
+            Videos: <span id="stats-total">{{ videos|length }}</span> | 
+            Storage: <span id="stats-size">{{ total_size|filesizeformat }}</span>
         </div>
     </div>
 
     <div class="container">
-        <div class="video-card nav-item">
+        <div class="video-card nav-item" id="tools-card">
             <div class="card-thumb" style="background: #111;">
                 <div class="play-icon" style="background: transparent; font-size: 40px; margin-top: -30px;">🌐</div>
             </div>
@@ -163,92 +167,199 @@
                 {% endif %}
             </div>
         </div>
-        {% if videos %}
-            {% for video in videos %}
-            <div class="video-card nav-item" id="vid-{{ video.id }}">
-                <div class="card-thumb">
-                    {% if video.thumbnail %}
-                        <img src="{{video.thumbnail.url}}" alt="" style="width: 260px; height: 145px;">
-                    {% endif %}
-                    <div class="play-icon">▶</div>
-                </div>
-                
-                <div class="card-info">
-                    <span class="status-badge st-{{ video.status }}">
-                        {{ video.get_status_display }}
-                    </span>
-                    <div class="card-title">{{ video.title }}</div>
-                    <div class="card-meta">
-                        {{ video.duration_human }} | {{ video.file_size_human }}
+        <span id="video-list-container">
+            {% if videos %}
+                {% for video in videos %}
+                <div class="video-card nav-item" id="vid-{{ video.id }}">
+                    <div class="card-thumb">
+                        {% if video.thumbnail %}
+                            <img src="{{video.thumbnail.url}}" alt="" style="width: 260px; height: 145px; object-fit: cover;">
+                        {% endif %}
+                        <div class="play-icon">▶</div>
                     </div>
-
-                    {% if video.status == 'completed' %}
-                        <div style="font-size: 0;">
-                            <a href="{% url 'play_video' video.id %}" class="action-btn" style="display:inline-block; width:48%;" target="_blank">
-                                RESUME / PLAY
-                            </a>
-                            <a href="{% url 'play_video' video.id %}?restart=1" class="action-btn" style="display:inline-block; width:48%; margin-left:4%; background:#607D8B;" target="_blank">
-                                RESTART
-                            </a>
+                    
+                    <div class="card-info">
+                        <span class="status-badge st-{{ video.status }}">
+                            {{ video.get_status_display }}
+                        </span>
+                        <div class="card-title">{{ video.title }}</div>
+                        <div class="card-meta">
+                            {{ video.duration_human }} | {{ video.file_size_human }}
                         </div>
-                    {% else %}
-                        <a href="/admin/videos/video/{{ video.id }}/download/" class="action-btn" style="background:#444;">
-                            DOWNLOAD
-                        </a>
-                    {% endif %}
+
+                        {% if video.status == 'completed' %}
+                            <div style="font-size: 0;">
+                                <a href="{% url 'play_video' video.id %}" class="action-btn" style="display:inline-block; width:48%;" target="_blank">
+                                    RESUME / PLAY
+                                </a>
+                                <a href="{% url 'play_video' video.id %}?restart=1" class="action-btn" style="display:inline-block; width:48%; margin-left:4%; background:#607D8B;" target="_blank">
+                                    RESTART
+                                </a>
+                            </div>
+                        {% else %}
+                            <a href="/admin/videos/video/{{ video.id }}/download/" class="action-btn" style="background:#444;">
+                                DOWNLOAD
+                            </a>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="no-videos">
-                <h3>No Videos Found in Database</h3>
-                <p>Please add videos via <a href="/admin" style="color:#D32F2F">Admin Panel</a></p>
-            </div>
-        {% endif %}
+                {% endfor %}
+            {% else %}
+                <div class="no-videos">
+                    <h3>No Videos Found in Database</h3>
+                    <p>Please add videos via <a href="/admin" style="color:#D32F2F">Admin Panel</a></p>
+                </div>
+            {% endif %}
+        </span>
     </div>
 
     <script>
         (function() {
-            var cards = document.querySelectorAll('.video-card');
-            var index = 0;
-            if(cards.length > 0) {
-                cards[0].className += " focused";
+            var initialCards = document.querySelectorAll('.video-card');
+            if (initialCards.length > 0) {
+                initialCards[0].className += " focused";
             }
+
+            function refreshData() {
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', '?format=json', true);
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4 && xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            updateUI(data);
+                        } catch (e) {
+                        }
+                    }
+                };
+                xhr.send();
+            }
+
+            function updateUI(data) {
+                var totalEl = document.getElementById('stats-total');
+                var sizeEl = document.getElementById('stats-size');
+                if (totalEl) totalEl.innerHTML = data.total_videos;
+                if (sizeEl) sizeEl.innerHTML = data.total_size_human;
+                var activeCard = document.querySelector('.video-card.focused');
+                var activeId = activeCard ? activeCard.id : null;
+
+                var container = document.getElementById('video-list-container');
+                if (!container) return;
+
+                var html = '';
+                var videos = data.videos;
+                if (videos && videos.length > 0) {
+                    for (var i = 0; i < videos.length; i++) {
+                        var v = videos[i];
+                        html += '<div class="video-card nav-item" id="vid-' + v.id + '">';
+                        html += '  <div class="card-thumb">';
+                        if (v.thumbnail_url) {
+                            html += '    <img src="' + v.thumbnail_url + '" alt="" style="width: 260px; height: 145px; object-fit: cover;">';
+                        }
+                        html += '    <div class="play-icon">▶</div>';
+                        html += '  </div>';
+                        html += '  <div class="card-info">';
+                        html += '    <span class="status-badge st-' + v.status + '">';
+                        html += '      ' + v.status_display;
+                        html += '    </span>';
+                        html += '    <div class="card-title">' + v.title + '</div>';
+                        html += '    <div class="card-meta">';
+                        html += '      ' + v.duration_human + ' | ' + v.file_size_human;
+                        html += '    </div>';
+
+                        if (v.status === 'completed') {
+                            html += '    <div style="font-size: 0;">';
+                            html += '      <a href="/video/' + v.id + '/play/" class="action-btn" style="display:inline-block; width:48%;" target="_blank">';
+                            html += '        RESUME / PLAY';
+                            html += '      </a>';
+                            html += '      <a href="/video/' + v.id + '/play/?restart=1" class="action-btn" style="display:inline-block; width:48%; margin-left:4%; background:#607D8B;" target="_blank">';
+                            html += '        RESTART';
+                            html += '      </a>';
+                            html += '    </div>';
+                        } else {
+                            html += '    <a href="/admin/videos/video/' + v.id + '/download/" class="action-btn" style="background:#444;">';
+                            html += '      DOWNLOAD';
+                            html += '    </a>';
+                        }
+                        html += '  </div>';
+                        html += '</div>';
+                    }
+                } else {
+                    html += '<div class="no-videos" id="no-videos-placeholder">';
+                    html += '  <h3>No Videos Found in Database</h3>';
+                    html += '  <p>Please add videos via <a href="/admin" style="color:#D32F2F">Admin Panel</a></p>';
+                    html += '</div>';
+                }
+
+                container.innerHTML = html;
+                
+                if (activeId) {
+                    var newActiveCard = document.getElementById(activeId);
+                    if (newActiveCard) {
+                        newActiveCard.className += " focused";
+                    } else {
+                        var toolsCard = document.getElementById('tools-card');
+                        if (toolsCard) toolsCard.className += " focused";
+                    }
+                } else {
+                    var toolsCard = document.getElementById('tools-card');
+                    if (toolsCard && toolsCard.className.indexOf('focused') === -1) {
+                        toolsCard.className += " focused";
+                    }
+                }
+            }
+            setInterval(refreshData, 3000);
+
             document.addEventListener('keydown', function(e) {
                 var code = e.keyCode;
                 
-                // 37=Left, 38=Up, 39=Right, 40=Down, 13=Enter, 23=Center/OK
                 if (code === 37 || code === 38 || code === 39 || code === 40 || code === 13 || code === 23) {
-                    if(cards[index]) {
-                        cards[index].className = cards[index].className.replace(" focused", "");
+                    var cards = document.querySelectorAll('.video-card');
+                    if (cards.length === 0) return;
+
+                    var index = -1;
+                    for (var i = 0; i < cards.length; i++) {
+                        if (cards[i].className.indexOf('focused') !== -1) {
+                            index = i;
+                            break;
+                        }
                     }
 
+                    if (index === -1) {
+                        cards[0].className += " focused";
+                        return;
+                    }
+
+                    var newIndex = index;
                     if (code === 37) { // Left
-                        if(index > 0) index--;
+                        if (index > 0) newIndex = index - 1;
                     }
                     else if (code === 39) { // Right
-                        if(index < cards.length - 1) index++;
+                        if (index < cards.length - 1) newIndex = index + 1;
                     }
                     else if (code === 38) { // Up
-                        if(index - 3 >= 0) index -= 3;
+                        if (index - 3 >= 0) newIndex = index - 3;
                     }
                     else if (code === 40) { // Down
-                        if(index + 3 < cards.length) index += 3;
+                        if (index + 3 < cards.length) newIndex = index + 3;
                     }
                     else if (code === 13 || code === 23) { // Enter
                         e.preventDefault();
                         var link = cards[index].querySelector('a');
-                        if(link) {
+                        if (link) {
                             window.location.href = link.href;
                         }
+                        return;
                     }
 
-                    if(cards[index]) {
-                        cards[index].className += " focused";
-                        var rect = cards[index].getBoundingClientRect();
-                        if(rect.bottom > window.innerHeight) {
+                    if (newIndex !== index) {
+                        cards[index].className = cards[index].className.replace(" focused", "");
+                        cards[newIndex].className += " focused";
+                        
+                        var rect = cards[newIndex].getBoundingClientRect();
+                        if (rect.bottom > window.innerHeight) {
                             window.scrollBy(0, 200);
-                        } else if(rect.top < 0) {
+                        } else if (rect.top < 0) {
                             window.scrollBy(0, -200);
                         }
                     }
