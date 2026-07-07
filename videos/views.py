@@ -142,7 +142,6 @@ async def file_chunk_generator(file_path, start, length, chunk_size=8192):
             if not chunk:
                 break
             remaining -= len(chunk)
-            await asyncio.sleep(0.0001)  
             yield chunk
 
 async def delete_video(request: HttpRequest, video_id: int):

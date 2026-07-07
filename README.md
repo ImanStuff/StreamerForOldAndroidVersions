@@ -81,6 +81,28 @@ Visit http://server-ip:8000/ to see added movies and stream them.
 Visit http://server-ip:8000/admin and add new videos there. 
 just movie name and movie download url are required.
 
+# Network Optimization (Linux users guide)
+If you experience buffering, stuttering, or slow video loading when streaming to your devices (especially on Wi-Fi), you should enable TCP BBR. BBR is a modern network congestion algorithm that significantly improves stream stability and throughput.
+open sysctl:
+```bash
+nano /etc/sysctl.conf
+```
+Add these two lines in the end of it:
+```bash
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+```
+apply the changes:
+```bash
+sysctl -p
+```
+And, verify the BBR activation:
+```bash
+sysctl net.ipv4.tcp_congestion_control
+// Expected output: net.ipv4.tcp_congestion_control = bbr
+```
+
+
 # Notes
 - **Expired SSL Support**: The download manager uses a legacy SSL context adapter to safely bypass connections to video servers that may have expired or legacy certificate configurations.
 - **Auto Thumbnail & Metadata Extraction**: You only need to paste the download URL. The background system automatically uses FFmpeg to capture a high-quality thumbnail frame and leverages FFprobe to populate the video duration automatically on download completion.
