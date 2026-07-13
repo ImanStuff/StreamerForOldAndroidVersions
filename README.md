@@ -104,6 +104,6 @@ sysctl net.ipv4.tcp_congestion_control
 
 
 # Notes
-- ** Problem with old .mp4s **: Old version of androids need specific codecs ( H.264 Baseline Profile and yuv420p pixel format, Modern mp4 uses H.256 or H.264 High Profile ). In result, even .mp4 extensions that we were not convert them using ffmpeg, May cause error: "This video can't be played". New version fixes this plus, adding baseline parameter in ffmpeg fallback command.
-- ** Problem with videos' filename "": Recent version of code, Does support default Django max_length = 50 for FileField, which raises error when you have a filename more than that; In new version, we increased it."
-- ** Did i saw this movie? **: This was the question i asked myself a lot. Fix it with a simple watched_time.
+- ## Problem with old .mp4s ##: Old version of androids need specific codecs ( H.264 Baseline Profile and yuv420p pixel format, Modern mp4 uses H.256 or H.264 High Profile ). In result, even .mp4 extensions that we were not convert them using ffmpeg, May cause error: "This video can't be played". New version fixes this plus, adding baseline parameter in ffmpeg fallback command.
+- ## Problem with videos' filename ##: Recent version of code, Does support default Django max_length = 50 for FileField, which raises error when you have a filename more than that; In new version, we increased it."
+- ## Did i saw this movie? ##: This was the question i asked myself a lot. Fix it with a simple watched_time.
