@@ -104,7 +104,6 @@ sysctl net.ipv4.tcp_congestion_control
 
 
 # Notes
-- **Expired SSL Support**: The download manager uses a legacy SSL context adapter to safely bypass connections to video servers that may have expired or legacy certificate configurations.
-- **Auto Thumbnail & Metadata Extraction**: You only need to paste the download URL. The background system automatically uses FFmpeg to capture a high-quality thumbnail frame and leverages FFprobe to populate the video duration automatically on download completion.
-- **Resume Watch Position**: The custom local logging records your playback progress every 5 seconds. If you return to the index page, you can resume watching from exactly where you left off.
-- **Resource-Efficient Polling**: The index page dynamically auto-refreshes to show download progress in real-time. For older TV hardware, the system utilizes the Page Visibility API to automatically pause polling requests to the server while you are watching a movie in a different tab, immediately resuming sync once you return.
+- ** Problem with old .mp4s **: Old version of androids need specific codecs ( H.264 Baseline Profile and yuv420p pixel format, Modern mp4 uses H.256 or H.264 High Profile ). In result, even .mp4 extensions that we were not convert them using ffmpeg, May cause error: "This video can't be played". New version fixes this plus, adding baseline parameter in ffmpeg fallback command.
+- ** Problem with videos' filename "": Recent version of code, Does support default Django max_length = 50 for FileField, which raises error when you have a filename more than that; In new version, we increased it."
+- ** Did i saw this movie? **: This was the question i asked myself a lot. Fix it with a simple watched_time.

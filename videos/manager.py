@@ -99,7 +99,7 @@ class VideoDownloadManager:
         
     def _convert_to_mp4(self, input_path: str):
         try:
-            output_path = os.path.splitext(input_path)[0] + ".mp4"
+            output_path = os.path.splitext(input_path)[0] + "_converted.mp4"
             logger.info(f"Converting {input_path} to {output_path}...")
             
             try:
@@ -129,6 +129,9 @@ class VideoDownloadManager:
                 '-loglevel', 'error',
                 '-i', input_path,
                 '-c:v', 'libx264',
+                '-profile:v', 'baseline',
+                '-level', '3.0',
+                '-pix_fmt', 'yuv420p',
                 '-preset', 'ultrafast',
                 '-x264-params', 'rc-lookahead=5:bframes=1:threads=1',
                 '-c:a', 'aac',
@@ -321,15 +324,12 @@ class VideoDownloadManager:
                         mode = 'ab'
             if download_success and os.path.exists(temp_path):
                 final_path = temp_path
-                file_ext = os.path.splitext(temp_path)[1].lower()
-                
-                if file_ext not in ['.mp4', '.webm', '.avi']:
-                    converted_path = self._convert_to_mp4(temp_path)
-                    if converted_path and os.path.exists(converted_path):
-                        final_path = converted_path
-                        filename = os.path.splitext(filename)[0] + ".mp4"
-                        if os.path.exists(temp_path) and temp_path != converted_path:
-                            os.remove(temp_path)
+                converted_path = self._convert_to_mp4(temp_path)
+                if converted_path and os.path.exists(converted_path):
+                    final_path = converted_path
+                    filename = os.path.splitext(filename)[0] + ".mp4"
+                    if os.path.exists(temp_path) and temp_path != converted_path:
+                        os.remove(temp_path)
                 
                 if os.path.exists(final_path):
                     thumb_path = self._generate_thumbnail(final_path)

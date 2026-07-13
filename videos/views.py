@@ -11,7 +11,7 @@ from django.shortcuts import render, redirect
 from django.views.decorators.csrf import csrf_exempt
 from django.http import FileResponse, StreamingHttpResponse, HttpResponse, HttpRequest, JsonResponse
 from django.template.defaultfilters import filesizeformat
-from django.db.models import Sum
+from django.db.models import Sum, Max
 from django.contrib import messages
 from django.conf import settings
 from .models import Video, Logging
@@ -22,7 +22,7 @@ async def a_path_exists(path):
     return await sync_to_async(os.path.exists)(path)
 
 async def video_list(request: HttpRequest):
-    videos = Video.objects.all().order_by('-created_at')
+    videos = Video.objects.annotate(watched_time_db=Max('logger_video__watched_time')).order_by('-created_at')
     total_videos = await videos.acount()
     completed_videos = await videos.filter(status='completed').acount()
     total_size_task = await videos.aaggregate(total=Sum('file_size'))
@@ -31,13 +31,15 @@ async def video_list(request: HttpRequest):
     if request.GET.get('format') == 'json':
         video_list_data = []
         async for video in videos:
+
             thumbnail_url = ""
             if video.thumbnail:
                 try:
                     thumbnail_url = video.thumbnail.url
                 except ValueError:
                     pass
-                
+            
+            watched_time = video.watched_time_db or 0
             video_list_data.append({
                 'id': str(video.id),
                 'title': video.title,
@@ -46,6 +48,7 @@ async def video_list(request: HttpRequest):
                 'duration_human': video.duration_human,
                 'file_size_human': video.file_size_human,
                 'thumbnail_url': thumbnail_url,
+                'watched_time': watched_time,
             })
         return JsonResponse({
             'videos': video_list_data,
@@ -54,7 +57,12 @@ async def video_list(request: HttpRequest):
             'total_size_human': filesizeformat(total_size),
         })
 
-    videos = [video async for video in videos]
+    videos_list = []
+    async for video in videos:
+        watched = video.watched_time_db or 0
+        video.watched_label = f" | Watched: {round(watched / 60)} min" if watched > 0 else ""
+        videos_list.append(video)
+
     last_video = await sync_to_async(lambda: Logging.objects.select_related('video').order_by('-updated').first())()
     context = {
         'videos': videos,
