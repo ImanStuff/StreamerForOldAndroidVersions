@@ -243,7 +243,7 @@ class VideoDownloadManager:
             
             parsed_url = urlparse(video.download_url)
             filename = os.path.basename(parsed_url.path) or f"video_{video.id}.mp4"
-            temp_path = f"/tmp/{filename}"
+            temp_path = f"/tmp/{video.id}_{filename}"
             
             if os.path.exists(temp_path):
                 downloaded_size = os.path.getsize(temp_path)
@@ -289,6 +289,10 @@ class VideoDownloadManager:
                                 pass
                             sys.stderr.flush()
                         
+                        if 400 <= response.status_code < 500 and response.status_code != 416:
+                            sys.stderr.write(f"[FATAL HTTP ERROR] Server returned {response.status_code}. Not retrying.\n")
+                            raise Exception(f"HTTP Error {response.status_code}: Link might be dead or forbidden.")
+
                         response.raise_for_status()
                         
                         try:

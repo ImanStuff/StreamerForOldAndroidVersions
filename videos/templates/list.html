@@ -4,166 +4,226 @@
     <title>TV Streamer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* RESET & BASE */
+        * {
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            box-sizing: border-box;
+        }
+
         body { 
             margin: 0; 
             padding: 0;
-            background-color: #121212; 
-            color: #eee;
-            font-family: sans-serif;
+            background-color: #0B0F19; /* Deep Cinematic Dark Slate */
+            color: #E2E8F0; /* Soft off-white */
+            font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* TOP BAR */
         .top-bar {
-            background: #222;
-            padding: 15px;
-            border-bottom: 2px solid #D32F2F; /* Red accent */
-            height: 50px;
+            background: #141B2D;
+            padding: 16px 24px;
+            border-bottom: 3px solid #84CC16; /* Vibrant Lime Green */
+            height: 56px;
+            -webkit-box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 5;
         }
         .top-title {
             font-size: 20px;
             font-weight: bold;
-            color: white;
+            color: #FFFFFF;
             float: left;
-            line-height: 20px;
+            line-height: 24px;
+            letter-spacing: 0.5px;
+        }
+        .top-title span {
+            color: #84CC16;
         }
         .top-stats {
             float: right;
             font-size: 14px;
-            color: #aaa;
-            line-height: 20px;
+            color: #94A3B8;
+            line-height: 24px;
+            font-weight: 500;
         }
-
-        /* CONTAINER */
+        .top-stats b {
+            color: #E2E8F0;
+        }
         .container {
-            padding: 20px;
-            text-align: center; /* Centers the inline-blocks */
+            padding: 24px;
+            text-align: center;
         }
-
-        /* VIDEO CARD (Android 4.4 Safe) */
         .video-card {
-            display: inline-block; /* The key fix for old Android */
+            display: inline-block; 
             vertical-align: top;
-            width: 260px;
-            margin: 10px;
-            background: #333;
-            border: 2px solid #444;
-            border-radius: 4px;
+            width: 270px;
+            margin: 14px;
+            background: #1A2234; /* Rich dark card background */
+            border: 2px solid #2D3748; /* Subtle border */
+            border-radius: 10px;
             text-align: left;
             position: relative;
+            overflow: hidden;
+            -webkit-box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+            -webkit-transition: -webkit-transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
-
-        /* THUMBNAIL AREA */
         .card-thumb {
-            height: 145px;
-            background: #000;
+            height: 152px;
+            background: #0B0F19;
             position: relative;
-            border-bottom: 1px solid #444;
+            border-bottom: 2px solid #2D3748;
+            overflow: hidden;
+        }
+        .thumb-img {
+            width: 100%;
+            height: 152px;
         }
         .play-icon {
             position: absolute;
             top: 50%; left: 50%;
             width: 50px; height: 50px;
             margin-left: -25px; margin-top: -25px;
-            font-size: 30px;
+            font-size: 24px;
             line-height: 50px;
             text-align: center;
             color: white;
-            background: rgba(0,0,0,0.5);
+            background: rgba(10, 15, 25, 0.7);
             border-radius: 50%;
+            border: 2px solid #84CC16; /* Lime outline */
         }
 
         /* INFO AREA */
-        .card-info { padding: 10px; }
+        .card-info { padding: 14px; }
+        
         .card-title {
-            color: white;
+            color: #FFFFFF;
             font-size: 16px;
             font-weight: bold;
-            margin-bottom: 5px;
-            height: 20px;
+            margin-bottom: 8px;
+            height: 22px;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
         }
-        .card-meta { font-size: 12px; color: #bbb; margin-bottom: 8px; }
+        .card-meta { 
+            font-size: 12px; 
+            color: #94A3B8; 
+            margin-bottom: 12px; 
+            font-weight: 500;
+        }
         
         .status-badge {
             display: inline-block;
-            padding: 2px 6px;
-            font-size: 10px;
-            background: #666;
-            color: white;
-            border-radius: 2px;
+            padding: 3px 8px;
+            font-size: 11px;
+            font-weight: bold;
+            border-radius: 4px;
             text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
         }
-        .st-completed { background: #388E3C; } /* Green */
-        .st-downloading { background: #1976D2; } /* Blue */
-        .st-error { background: #D32F2F; } /* Red */
+        .st-completed { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.4); } /* Emerald Green */
+        .st-downloading { background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.4); } /* Blue */
+        .st-error { background: rgba(239, 68, 68, 0.15); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.4); } /* Red */
+        .st-pending { background: rgba(148, 163, 184, 0.15); color: #CBD5E1; border: 1px solid rgba(148, 163, 184, 0.4); } /* Gray */
+        .st-tools { background: rgba(234, 179, 8, 0.15); color: #FBBF24; border: 1px solid rgba(234, 179, 8, 0.4); } /* Yellow */
 
-        /* BUTTONS */
         .action-btn {
             display: block;
             width: 100%;
             padding: 10px 0;
-            margin-top: 5px;
-            background: #D32F2F;
-            color: white;
+            margin-top: 4px;
             text-decoration: none;
             text-align: center;
             font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
+            font-size: 13px;
+            border-radius: 6px;
             border: none;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
-        .action-btn:active { background: #b71c1c; }
+        
+        .btn-primary { 
+            background: #10B981; /* Emerald Green */
+            color: #ffffff; 
+            -webkit-box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+        }
+        .btn-primary:active { background: #059669; }
+        
+        .btn-secondary { 
+            background: #334155; /* Slate */
+            color: #F8FAFC; 
+        }
+        .btn-secondary:active { background: #1E293B; }
+        
+        .btn-dark { 
+            background: #0F172A; 
+            color: #38BDF8; /* Neon blue text */
+            border: 1px solid #1D283A;
+        }
+        
+        .btn-half { display: inline-block; width: 48%; }
+        .btn-space { margin-left: 4%; }
 
-        /* FOCUS STATE (Remote Control) */
         .video-card.focused {
-            border-color: #FFEB3B; /* Yellow border */
-            transform: scale(1.05); /* Zoom effect */
+            border-color: #FBBF24; /* Golden Yellow TV focus border */
+            -webkit-transform: scale(1.06); /* HW Zoom */
+            transform: scale(1.06); 
             z-index: 10;
-            box-shadow: 0 0 15px rgba(0,0,0,0.8);
+            -webkit-box-shadow: 0 0 25px rgba(251, 191, 36, 0.35); /* Yellow ambient glow */
+            box-shadow: 0 0 25px rgba(251, 191, 36, 0.35);
         }
-        .video-card.focused .action-btn { background: #FFEB3B; color: black; }
+        .video-card.focused .btn-primary { 
+            background: #84CC16;
+            color: #0B0F19;
+        }
+        .video-card.focused .card-title { color: #84CC16; }
+        .video-card.focused .st-tools { color: #FFFFFF; background: #FBBF24; }
 
         /* ERROR MSG */
         .no-videos {
             padding: 50px;
-            color: #888;
+            color: #94A3B8;
             font-size: 18px;
+            background: #1A2234;
+            border-radius: 10px;
+            border: 2px dashed #2D3748;
+            display: inline-block;
+            margin-top: 20px;
         }
+        .no-videos a { color: #84CC16; text-decoration: none; }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
-        <div class="top-title">Streamer</div>
+        <div class="top-title">Media <span>Streamer</span></div>
         <div class="top-stats">
-            Videos: <span id="stats-total">{{ videos|length }}</span> | 
-            Storage: <span id="stats-size">{{ total_size|filesizeformat }}</span>
+            Videos: <b><span id="stats-total">{{ videos|length }}</span></b> &nbsp;|&nbsp; 
+            Storage: <b><span id="stats-size">{{ total_size|filesizeformat }}</span></b>
         </div>
     </div>
 
     <div class="container">
         <div class="video-card nav-item" id="tools-card">
-            <div class="card-thumb" style="background: #111;">
-                <div class="play-icon" style="background: transparent; font-size: 40px; margin-top: -30px;">🌐</div>
+            <div class="card-thumb" style="background: #0B0F19;">
+                <div class="play-icon" style="background: transparent; border: none; font-size: 44px; margin-top: -26px;">🌐</div>
             </div>
             
             <div class="card-info">
-                <span class="status-badge st-completed" style="background: #1976D2;">
-                    TOOLS
-                </span>
+                <span class="status-badge st-tools">TV TOOLS</span>
                 <div class="card-title">Movie Proxy Portal</div>
-                <div class="card-meta">
-                    Tools you may need
-                </div>
+                <div class="card-meta">Browse available media proxies</div>
 
-                <a href="{% url 'tv_remote_view_' %}" class="action-btn" style="background:#1976D2;">
-                    OPEN PORTAL
-                </a>
+                <a href="{% url 'tv_remote_view_' %}" class="action-btn btn-primary">OPEN PORTAL</a>
                 {% if last_video %}
-                    <a href="{% url 'play_video' last_video.video.id %}" class="action-btn" target="_blank">Do you want to see "{{last_video.video.title}}" again? click here</a>
+                    <a href="{% url 'play_video' last_video.video.id %}" class="action-btn btn-secondary" target="_blank" style="font-size: 11px;">
+                        RESUME: {{ last_video.video.title|truncatechars:18 }}
+                    </a>
                 {% endif %}
             </div>
         </div>
@@ -173,32 +233,32 @@
                 <div class="video-card nav-item" id="vid-{{ video.id }}">
                     <div class="card-thumb">
                         {% if video.thumbnail %}
-                            <img src="{{video.thumbnail.url}}" alt="" style="width: 260px; height: 145px; object-fit: cover;">
+                            <img src="{{ video.thumbnail.url }}" alt="" class="thumb-img">
                         {% endif %}
                         <div class="play-icon">▶</div>
                     </div>
                     
                     <div class="card-info">
-                        <span class="status-badge st-{{ video.status }}">
+                        <span class="status-badge st-{{ video.status|lower }}">
                             {{ video.get_status_display }}
                         </span>
                         <div class="card-title">{{ video.title }}</div>
                         <div class="card-meta">
-                            {{ video.duration_human }} | {{ video.file_size_human }}{{ video.watched_label }}
+                            {{ video.duration_human }} &nbsp;|&nbsp; {{ video.file_size_human }}{{ video.watched_label }}
                         </div>
 
                         {% if video.status == 'completed' %}
                             <div style="font-size: 0;">
-                                <a href="{% url 'play_video' video.id %}" class="action-btn" style="display:inline-block; width:48%;" target="_blank">
-                                    RESUME / PLAY
+                                <a href="{% url 'play_video' video.id %}" class="action-btn btn-primary btn-half" target="_blank">
+                                    RESUME
                                 </a>
-                                <a href="{% url 'play_video' video.id %}?restart=1" class="action-btn" style="display:inline-block; width:48%; margin-left:4%; background:#607D8B;" target="_blank">
+                                <a href="{% url 'play_video' video.id %}?restart=1" class="action-btn btn-secondary btn-half btn-space" target="_blank">
                                     RESTART
                                 </a>
                             </div>
                         {% else %}
-                            <a href="/admin/videos/video/{{ video.id }}/download/" class="action-btn" style="background:#444;">
-                                DOWNLOAD
+                            <a href="/admin/videos/video/{{ video.id }}/download/" class="action-btn btn-dark">
+                                START DOWNLOAD
                             </a>
                         {% endif %}
                     </div>
@@ -206,8 +266,8 @@
                 {% endfor %}
             {% else %}
                 <div class="no-videos">
-                    <h3>No Videos Found in Database</h3>
-                    <p>Please add videos via <a href="/admin" style="color:#D32F2F">Admin Panel</a></p>
+                    <h3>No Media Found</h3>
+                    <p>Please queue items via the <a href="/admin">Admin Panel</a></p>
                 </div>
             {% endif %}
         </span>
@@ -228,8 +288,7 @@
                         try {
                             var data = JSON.parse(xhr.responseText);
                             updateUI(data);
-                        } catch (e) {
-                        }
+                        } catch (e) { }
                     }
                 };
                 xhr.send();
@@ -251,44 +310,46 @@
                 if (videos && videos.length > 0) {
                     for (var i = 0; i < videos.length; i++) {
                         var v = videos[i];
-                        var watchedLabel = v.watched_time > 0 ? " | Watched: " + Math.round(v.watched_time / 60) + " min" : "";
+                        var watchedLabel = v.watched_time > 0 ? " &nbsp;|&nbsp; Watched: " + Math.round(v.watched_time / 60) + " min" : "";
+                        var statusClass = v.status ? v.status.toLowerCase() : 'pending';
+
                         html += '<div class="video-card nav-item" id="vid-' + v.id + '">';
                         html += '  <div class="card-thumb">';
                         if (v.thumbnail_url) {
-                            html += '    <img src="' + v.thumbnail_url + '" alt="" style="width: 260px; height: 145px; object-fit: cover;">';
+                            html += '    <img src="' + v.thumbnail_url + '" alt="" class="thumb-img">';
                         }
                         html += '    <div class="play-icon">▶</div>';
                         html += '  </div>';
                         html += '  <div class="card-info">';
-                        html += '    <span class="status-badge st-' + v.status + '">';
+                        html += '    <span class="status-badge st-' + statusClass + '">';
                         html += '      ' + v.status_display;
                         html += '    </span>';
                         html += '    <div class="card-title">' + v.title + '</div>';
                         html += '    <div class="card-meta">';
-                            html += '      ' + v.duration_human + ' | ' + v.file_size_human + watchedLabel;
+                        html += '      ' + v.duration_human + ' &nbsp;|&nbsp; ' + v.file_size_human + watchedLabel;
                         html += '    </div>';
 
                         if (v.status === 'completed') {
                             html += '    <div style="font-size: 0;">';
-                            html += '      <a href="/video/' + v.id + '/play/" class="action-btn" style="display:inline-block; width:48%;" target="_blank">';
-                            html += '        RESUME / PLAY';
+                            html += '      <a href="/video/' + v.id + '/play/" class="action-btn btn-primary btn-half" target="_blank">';
+                            html += '        RESUME';
                             html += '      </a>';
-                            html += '      <a href="/video/' + v.id + '/play/?restart=1" class="action-btn" style="display:inline-block; width:48%; margin-left:4%; background:#607D8B;" target="_blank">';
+                            html += '      <a href="/video/' + v.id + '/play/?restart=1" class="action-btn btn-secondary btn-half btn-space" target="_blank">';
                             html += '        RESTART';
                             html += '      </a>';
                             html += '    </div>';
                         } else {
-                            html += '    <a href="/admin/videos/video/' + v.id + '/download/" class="action-btn" style="background:#444;">';
-                            html += '      DOWNLOAD';
+                            html += '    <a href="/admin/videos/video/' + v.id + '/download/" class="action-btn btn-dark">';
+                            html += '      START DOWNLOAD';
                             html += '    </a>';
                         }
                         html += '  </div>';
                         html += '</div>';
                     }
                 } else {
-                    html += '<div class="no-videos" id="no-videos-placeholder">';
-                    html += '  <h3>No Videos Found in Database</h3>';
-                    html += '  <p>Please add videos via <a href="/admin" style="color:#D32F2F">Admin Panel</a></p>';
+                    html += '<div class="no-videos">';
+                    html += '  <h3>No Media Found</h3>';
+                    html += '  <p>Please queue items via the <a href="/admin">Admin Panel</a></p>';
                     html += '</div>';
                 }
 
@@ -309,7 +370,8 @@
                     }
                 }
             }
-            setInterval(refreshData, 3000);
+            
+            setInterval(refreshData, 5000);
 
             document.addEventListener('keydown', function(e) {
                 var code = e.keyCode;

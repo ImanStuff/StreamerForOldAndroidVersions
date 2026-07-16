@@ -73,6 +73,7 @@ class Video(models.Model):
                     os.remove(file_path)
                     logger.info(f"Deleted video file: {file_path}")
                     return True
+                return True
             except Exception as e:
                 logger.error(f"Error deleting video file: {e}")
         return False
@@ -85,6 +86,7 @@ class Video(models.Model):
                     os.remove(thumbnail_path)
                     logger.info(f"Deleted thumbnail: {thumbnail_path}")
                     return True
+                return True
             except Exception as e:
                 logger.error(f"Error deleting thumbnail: {e}")
         return False
