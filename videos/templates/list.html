@@ -13,63 +13,83 @@
         body { 
             margin: 0; 
             padding: 0;
-            background-color: #0B0F19; /* Deep Cinematic Dark Slate */
+            background-color: #0B0F19;
+            background-image: -webkit-radial-gradient(circle at top, #1E293B 0%, #0B0F19 100%);
+            background-image: radial-gradient(circle at top, #1E293B 0%, #0B0F19 100%);
             color: #E2E8F0; /* Soft off-white */
-            font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: "Roboto", "Segoe UI", Arial, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
-
         .top-bar {
             background: #141B2D;
-            padding: 16px 24px;
+            padding: 0 24px;
             border-bottom: 3px solid #84CC16; /* Vibrant Lime Green */
             height: 56px;
             -webkit-box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            position: relative;
-            z-index: 5;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-pack: justify;
+            -webkit-justify-content: space-between;
+            justify-content: space-between;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
         }
         .top-title {
             font-size: 20px;
             font-weight: bold;
             color: #FFFFFF;
-            float: left;
-            line-height: 24px;
             letter-spacing: 0.5px;
         }
         .top-title span {
             color: #84CC16;
         }
         .top-stats {
-            float: right;
-            font-size: 14px;
+            font-size: 12px;
             color: #94A3B8;
-            line-height: 24px;
             font-weight: 500;
         }
         .top-stats b {
             color: #E2E8F0;
         }
+        
         .container {
-            padding: 24px;
+            padding: 88px 24px 40px 24px;
             text-align: center;
         }
+        
         .video-card {
             display: inline-block; 
             vertical-align: top;
             width: 270px;
             margin: 14px;
-            background: #1A2234; /* Rich dark card background */
-            border: 2px solid #2D3748; /* Subtle border */
+            background: #1A2234;
+            border: 2px solid #2D3748;
             border-radius: 10px;
             text-align: left;
             position: relative;
             overflow: hidden;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            -webkit-transform-style: preserve-3d;
+            transform-style: preserve-3d;
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+
             -webkit-box-shadow: 0 6px 12px rgba(0,0,0,0.4);
             box-shadow: 0 6px 12px rgba(0,0,0,0.4);
             -webkit-transition: -webkit-transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
             transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
+        
         .card-thumb {
             height: 152px;
             background: #0B0F19;
@@ -77,22 +97,70 @@
             border-bottom: 2px solid #2D3748;
             overflow: hidden;
         }
+        
+        .card-thumb::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: -webkit-gradient(linear, left top, left bottom, from(rgba(11, 15, 25, 0)), to(rgba(11, 15, 25, 0.7)));
+            background: -webkit-linear-gradient(top, rgba(11, 15, 25, 0) 0%, rgba(11, 15, 25, 0.7) 100%);
+            background: linear-gradient(180deg, rgba(11, 15, 25, 0) 0%, rgba(11, 15, 25, 0.7) 100%);
+            z-index: 1;
+        }
+        
         .thumb-img {
             width: 100%;
             height: 152px;
+            object-fit: cover;
         }
         .play-icon {
             position: absolute;
             top: 50%; left: 50%;
-            width: 50px; height: 50px;
-            margin-left: -25px; margin-top: -25px;
-            font-size: 24px;
-            line-height: 50px;
-            text-align: center;
-            color: white;
-            background: rgba(10, 15, 25, 0.7);
+            width: 52px; height: 52px;
+            margin-left: -26px; margin-top: -26px;
+            background: rgba(10, 15, 25, 0.85);
             border-radius: 50%;
-            border: 2px solid #84CC16; /* Lime outline */
+            border: 2px solid #84CC16;
+            z-index: 2;
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+        }
+        .play-icon svg {
+            width: 22px;
+            height: 22px;
+            margin-left: 2px;
+        }
+
+        .tools-icon {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 60px; height: 60px;
+            margin-left: -30px; margin-top: -30px;
+            background: rgba(251, 191, 36, 0.1);
+            border: 2px solid #FBBF24;
+            border-radius: 50%;
+            z-index: 2;
+
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-pack: center;
+            -webkit-justify-content: center;
+            justify-content: center;
+            -webkit-box-align: center;
+            -webkit-align-items: center;
+            align-items: center;
+        }
+        .tools-icon svg {
+            width: 32px;
+            height: 32px;
         }
 
         /* INFO AREA */
@@ -107,6 +175,8 @@
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
+            -webkit-transition: color 0.2s ease;
+            transition: color 0.2s ease;
         }
         .card-meta { 
             font-size: 12px; 
@@ -125,11 +195,11 @@
             margin-bottom: 10px;
             letter-spacing: 0.5px;
         }
-        .st-completed { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.4); } /* Emerald Green */
-        .st-downloading { background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.4); } /* Blue */
-        .st-error { background: rgba(239, 68, 68, 0.15); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.4); } /* Red */
-        .st-pending { background: rgba(148, 163, 184, 0.15); color: #CBD5E1; border: 1px solid rgba(148, 163, 184, 0.4); } /* Gray */
-        .st-tools { background: rgba(234, 179, 8, 0.15); color: #FBBF24; border: 1px solid rgba(234, 179, 8, 0.4); } /* Yellow */
+        .st-completed { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid rgba(16, 185, 129, 0.4); } 
+        .st-downloading { background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid rgba(59, 130, 246, 0.4); } 
+        .st-error { background: rgba(239, 68, 68, 0.15); color: #F87171; border: 1px solid rgba(239, 68, 68, 0.4); } 
+        .st-pending { background: rgba(148, 163, 184, 0.15); color: #CBD5E1; border: 1px solid rgba(148, 163, 184, 0.4); } 
+        .st-tools { background: rgba(251, 191, 36, 0.15); color: #FBBF24; border: 1px solid rgba(251, 191, 36, 0.4); } 
 
         .action-btn {
             display: block;
@@ -145,46 +215,61 @@
             cursor: pointer;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            -webkit-transition: background-color 0.2s ease, color 0.2s ease;
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
         
         .btn-primary { 
-            background: #10B981; /* Emerald Green */
+            background: #10B981; 
             color: #ffffff; 
             -webkit-box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
         }
         .btn-primary:active { background: #059669; }
         
         .btn-secondary { 
-            background: #334155; /* Slate */
+            background: #334155; 
             color: #F8FAFC; 
         }
         .btn-secondary:active { background: #1E293B; }
         
         .btn-dark { 
             background: #0F172A; 
-            color: #38BDF8; /* Neon blue text */
+            color: #38BDF8; 
             border: 1px solid #1D283A;
         }
-        
-        .btn-half { display: inline-block; width: 48%; }
-        .btn-space { margin-left: 4%; }
+        .action-container {
+            display: -webkit-box;
+            display: -webkit-flex;
+            display: flex;
+            -webkit-box-pack: justify;
+            -webkit-justify-content: space-between;
+            justify-content: space-between;
+        }
+        .btn-half { width: 48%; }
 
+        /* Focused TV Highlight State */
         .video-card.focused {
-            border-color: #FBBF24; /* Golden Yellow TV focus border */
-            -webkit-transform: scale(1.06); /* HW Zoom */
-            transform: scale(1.06); 
+            border-color: #FBBF24; 
+            -webkit-transform: scale(1.06) translate3d(0, 0, 0); 
+            transform: scale(1.06) translate3d(0, 0, 0); 
             z-index: 10;
-            -webkit-box-shadow: 0 0 25px rgba(251, 191, 36, 0.35); /* Yellow ambient glow */
-            box-shadow: 0 0 25px rgba(251, 191, 36, 0.35);
+            -webkit-box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
         }
         .video-card.focused .btn-primary { 
             background: #84CC16;
             color: #0B0F19;
+            -webkit-box-shadow: 0 3px 6px rgba(132, 204, 22, 0.4);
+            box-shadow: 0 3px 6px rgba(132, 204, 22, 0.4);
+        }
+        .video-card.focused .btn-secondary {
+            background: #475569;
+            color: #FFFFFF;
         }
         .video-card.focused .card-title { color: #84CC16; }
         .video-card.focused .st-tools { color: #FFFFFF; background: #FBBF24; }
 
-        /* ERROR MSG */
         .no-videos {
             padding: 50px;
             color: #94A3B8;
@@ -211,7 +296,11 @@
     <div class="container">
         <div class="video-card nav-item" id="tools-card">
             <div class="card-thumb" style="background: #0B0F19;">
-                <div class="play-icon" style="background: transparent; border: none; font-size: 44px; margin-top: -26px;">🌐</div>
+                <div class="tools-icon">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM11 19.93C7.05 19.44 4 16.08 4 12C4 11.38 4.08 10.78 4.21 10.21L9 15V16C9 17.1 9.9 18 11 18V19.93ZM17.9 15.1C17.65 14.44 17.07 14 16.4 14H15V11C15 10.45 14.55 10 14 10H8V8H10C10.55 8 11 7.55 11 7V5H12C13.66 5 15.11 5.81 16 7.07V7.5C16 8.33 16.67 9 17.5 9H18C18.55 9 19 9.45 19 10V12.5C19 13.55 18.54 14.5 17.9 15.1Z" fill="#FBBF24"/>
+                    </svg>
+                </div>
             </div>
             
             <div class="card-info">
@@ -221,7 +310,7 @@
 
                 <a href="{% url 'tv_remote_view_' %}" class="action-btn btn-primary">OPEN PORTAL</a>
                 {% if last_video %}
-                    <a href="{% url 'play_video' last_video.video.id %}" class="action-btn btn-secondary" target="_blank" style="font-size: 11px;">
+                    <a href="{% url 'play_video' last_video.video.id %}" class="action-btn btn-secondary" target="_blank" style="font-size: 11px; margin-top: 8px;">
                         RESUME: {{ last_video.video.title|truncatechars:18 }}
                     </a>
                 {% endif %}
@@ -235,7 +324,11 @@
                         {% if video.thumbnail %}
                             <img src="{{ video.thumbnail.url }}" alt="" class="thumb-img">
                         {% endif %}
-                        <div class="play-icon">▶</div>
+                        <div class="play-icon">
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 5V19L19 12L8 5Z" fill="#84CC16"/>
+                            </svg>
+                        </div>
                     </div>
                     
                     <div class="card-info">
@@ -248,11 +341,11 @@
                         </div>
 
                         {% if video.status == 'completed' %}
-                            <div style="font-size: 0;">
+                            <div class="action-container">
                                 <a href="{% url 'play_video' video.id %}" class="action-btn btn-primary btn-half" target="_blank">
                                     RESUME
                                 </a>
-                                <a href="{% url 'play_video' video.id %}?restart=1" class="action-btn btn-secondary btn-half btn-space" target="_blank">
+                                <a href="{% url 'play_video' video.id %}?restart=1" class="action-btn btn-secondary btn-half" target="_blank">
                                     RESTART
                                 </a>
                             </div>
@@ -277,7 +370,33 @@
         (function() {
             var initialCards = document.querySelectorAll('.video-card');
             if (initialCards.length > 0) {
-                initialCards[0].className += " focused";
+                addClass(initialCards[0], "focused");
+            }
+            function addClass(el, className) {
+                if (!el) return;
+                if (el.classList) {
+                    el.classList.add(className);
+                } else {
+                    var currentClasses = el.className.split(' ');
+                    if (currentClasses.indexOf(className) === -1) {
+                        currentClasses.push(className);
+                        el.className = currentClasses.join(' ');
+                    }
+                }
+            }
+
+            function removeClass(el, className) {
+                if (!el) return;
+                if (el.classList) {
+                    el.classList.remove(className);
+                } else {
+                    var currentClasses = el.className.split(' ');
+                    var idx = currentClasses.indexOf(className);
+                    if (idx !== -1) {
+                        currentClasses.splice(idx, 1);
+                        el.className = currentClasses.join(' ');
+                    }
+                }
             }
 
             function refreshData() {
@@ -318,7 +437,11 @@
                         if (v.thumbnail_url) {
                             html += '    <img src="' + v.thumbnail_url + '" alt="" class="thumb-img">';
                         }
-                        html += '    <div class="play-icon">▶</div>';
+                        html += '    <div class="play-icon">';
+                        html += '      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">';
+                        html += '        <path d="M8 5V19L19 12L8 5Z" fill="#84CC16"/>';
+                        html += '      </svg>';
+                        html += '    </div>';
                         html += '  </div>';
                         html += '  <div class="card-info">';
                         html += '    <span class="status-badge st-' + statusClass + '">';
@@ -330,11 +453,11 @@
                         html += '    </div>';
 
                         if (v.status === 'completed') {
-                            html += '    <div style="font-size: 0;">';
+                            html += '    <div class="action-container">';
                             html += '      <a href="/video/' + v.id + '/play/" class="action-btn btn-primary btn-half" target="_blank">';
                             html += '        RESUME';
                             html += '      </a>';
-                            html += '      <a href="/video/' + v.id + '/play/?restart=1" class="action-btn btn-secondary btn-half btn-space" target="_blank">';
+                            html += '      <a href="/video/' + v.id + '/play/?restart=1" class="action-btn btn-secondary btn-half" target="_blank">';
                             html += '        RESTART';
                             html += '      </a>';
                             html += '    </div>';
@@ -358,72 +481,112 @@
                 if (activeId) {
                     var newActiveCard = document.getElementById(activeId);
                     if (newActiveCard) {
-                        newActiveCard.className += " focused";
+                        addClass(newActiveCard, "focused");
                     } else {
                         var toolsCard = document.getElementById('tools-card');
-                        if (toolsCard) toolsCard.className += " focused";
+                        if (toolsCard) addClass(toolsCard, "focused");
                     }
                 } else {
                     var toolsCard = document.getElementById('tools-card');
-                    if (toolsCard && toolsCard.className.indexOf('focused') === -1) {
-                        toolsCard.className += " focused";
+                    if (toolsCard) {
+                        addClass(toolsCard, "focused");
                     }
                 }
             }
             
             setInterval(refreshData, 5000);
 
+            function findNearestElement(currentEl, direction) {
+                var cards = document.querySelectorAll('.video-card');
+                var curRect = currentEl.getBoundingClientRect();
+                var curCentX = curRect.left + curRect.width / 2;
+                var curCentY = curRect.top + curRect.height / 2;
+                
+                var bestMatch = null;
+                var bestScore = Infinity;
+                
+                for (var i = 0; i < cards.length; i++) {
+                    var el = cards[i];
+                    if (el === currentEl) continue;
+                    
+                    var r = el.getBoundingClientRect();
+                    var centX = r.left + r.width / 2;
+                    var centY = r.top + r.height / 2;
+                    
+                    var dx = centX - curCentX;
+                    var dy = centY - curCentY;
+                    
+                    var isValid = false;
+                    if (direction === 'left' && dx < -10 && Math.abs(dy) < r.height) {
+                        isValid = true;
+                    } else if (direction === 'right' && dx > 10 && Math.abs(dy) < r.height) {
+                        isValid = true;
+                    } else if (direction === 'up' && dy < -10) {
+                        isValid = true;
+                    } else if (direction === 'down' && dy > 10) {
+                        isValid = true;
+                    }
+                    
+                    if (isValid) {
+                        var score = 0;
+                        if (direction === 'left' || direction === 'right') {
+                            score = Math.abs(dx) + Math.abs(dy) * 2;
+                        } else {
+                            score = Math.abs(dy) + Math.abs(dx) * 2;
+                        }
+                        if (score < bestScore) {
+                            bestScore = score;
+                            bestMatch = el;
+                        }
+                    }
+                }
+                return bestMatch;
+            }
+
             document.addEventListener('keydown', function(e) {
                 var code = e.keyCode;
                 
-                if (code === 37 || code === 38 || code === 39 || code === 40 || code === 13 || code === 23) {
+                if (code === 37 || code === 38 || code === 39 || code === 40 || code === 13 || code === 23 || code === 66) {
                     var cards = document.querySelectorAll('.video-card');
                     if (cards.length === 0) return;
 
-                    var index = -1;
-                    for (var i = 0; i < cards.length; i++) {
-                        if (cards[i].className.indexOf('focused') !== -1) {
-                            index = i;
-                            break;
-                        }
-                    }
-
-                    if (index === -1) {
-                        cards[0].className += " focused";
+                    var activeCard = document.querySelector('.video-card.focused');
+                    if (!activeCard) {
+                        addClass(cards[0], "focused");
                         return;
                     }
 
-                    var newIndex = index;
+                    var nextCard = null;
                     if (code === 37) { // Left
-                        if (index > 0) newIndex = index - 1;
+                        nextCard = findNearestElement(activeCard, 'left');
                     }
                     else if (code === 39) { // Right
-                        if (index < cards.length - 1) newIndex = index + 1;
+                        nextCard = findNearestElement(activeCard, 'right');
                     }
                     else if (code === 38) { // Up
-                        if (index - 3 >= 0) newIndex = index - 3;
+                        nextCard = findNearestElement(activeCard, 'up');
                     }
                     else if (code === 40) { // Down
-                        if (index + 3 < cards.length) newIndex = index + 3;
+                        nextCard = findNearestElement(activeCard, 'down');
                     }
-                    else if (code === 13 || code === 23) { // Enter
+                    else if (code === 13 || code === 23 || code === 66) { // Enter
                         e.preventDefault();
-                        var link = cards[index].querySelector('a');
+                        var link = activeCard.querySelector('a');
                         if (link) {
                             window.location.href = link.href;
                         }
                         return;
                     }
 
-                    if (newIndex !== index) {
-                        cards[index].className = cards[index].className.replace(" focused", "");
-                        cards[newIndex].className += " focused";
+                    if (nextCard) {
+                        removeClass(activeCard, "focused");
+                        addClass(nextCard, "focused");
                         
-                        var rect = cards[newIndex].getBoundingClientRect();
+                        var rect = nextCard.getBoundingClientRect();
                         if (rect.bottom > window.innerHeight) {
-                            window.scrollBy(0, 200);
-                        } else if (rect.top < 0) {
-                            window.scrollBy(0, -200);
+                            window.scrollBy(0, rect.bottom - window.innerHeight + 24);
+                        } else if (rect.top < 70) {
+                            window.scrollBy(0, rect.top - 80);
                         }
                     }
                 }

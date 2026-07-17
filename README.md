@@ -104,15 +104,15 @@ sysctl net.ipv4.tcp_congestion_control
 
 
 # Notes
-# 2026/07/17 notes
-- ## Improved UI, and some features.
-    1- Some improvements with AI. I will handle it better myself next time.
-    2- Making temp_path more specific by adding video_id in it.
-    3- Returning True in delete_video_file and delete_thumbnail_file inside models.py,
-        to show we deleted the file. ( This is not logically sound. We may have bug that caused the functions could not find files to delete. I will improve it.)
-- ## Problem with old .mp4s : 
-    Old version of androids need specific codecs ( H.264 Baseline Profile and yuv420p pixel format, Modern mp4 uses H.256 or H.264 High Profile ). In result, even .mp4 extensions that we were not convert them using ffmpeg, May cause error: "This video can't be played". New version fixes this plus, adding baseline parameter in ffmpeg fallback command.
-- ## Problem with videos' filename: 
-    Recent version of code, Does support default Django max_length = 50 for FileField, which raises error when you have a filename more than that; In new version, we increased it."
-- ## Did i saw this movie?: 
-    This was the question i asked myself a lot. Fix it with a simple watched_time.
+- ## 2026/07/17 notes
+    - ## Improved UI, and some features.
+        1- Some improvements with AI. I will handle it better myself next time.
+        2- Making temp_path more specific by adding video_id in it.
+        3- Returning True in delete_video_file and delete_thumbnail_file inside models.py,
+            to show we deleted the file. ( This is not logically sound. We may have bug that caused the functions could not find files to delete. I will improve it.)
+    - ## Problem with old .mp4s : 
+        Old version of androids need specific codecs ( H.264 Baseline Profile and yuv420p pixel format, Modern mp4 uses H.256 or H.264 High Profile ). In result, even .mp4 extensions that we were not convert them using ffmpeg, May cause error: "This video can't be played". New version fixes this plus, adding baseline parameter in ffmpeg fallback command.
+    - ## Problem with videos' filename: 
+        Recent version of code, Does support default Django max_length = 50 for FileField, which raises error when you have a filename more than that; In new version, we increased it."
+    - ## Did i saw this movie?: 
+        This was the question i asked myself a lot. Fix it with a simple watched_time.
