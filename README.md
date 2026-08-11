@@ -104,6 +104,15 @@ sysctl net.ipv4.tcp_congestion_control
 
 
 # Notes
+- ## 2026/08/12 notes
+    - ## Subtitles"
+        Now, you can upload your subtitles, as many as you want, for each movie, and change them in streamer. ( The UI may have bugs for many subtitles now ( to show them in the header ), I fix them later)
+        Also, older version TVs, have a default video player, that you can't stream inside the browser, so, You have a TV option; Enable it, and it burns the subtitle, and streams the movie second by second, something like Hard-Sub movies. I do not test it with movies that already have subtitles, so, i don't know its behavior. i will fix them in next version.
+
+        - You may need to install freefont package for your Linux OS for FFmpeg to render the subtitles properly:
+        ```bash
+        sudo apt install fonts-freefont-ttf
+        ```
 - ## 2026/07/17 notes
     - ## Improved UI, and some features.
         1- Some improvements with AI. I will handle it better myself next time.

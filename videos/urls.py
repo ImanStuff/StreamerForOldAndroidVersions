@@ -17,6 +17,8 @@ urlpatterns = [
     path('test-movie/', views.tv_remote_view, name='tv_remote_view_'),
     path('video/<uuid:video_id>/play/', views.play_video, name='play_video'),
     path('video/<uuid:video_id>/log-time/', views.log_video_time, name='log_video_time'),
+    path('subtitle/<uuid:subtitle_id>/', views.serve_subtitle, name='serve_subtitle'),
+    path('video/<uuid:video_id>/stream-burned/', views.stream_burned_video, name='stream_burned'),
 ]
 
 if settings.DEBUG:

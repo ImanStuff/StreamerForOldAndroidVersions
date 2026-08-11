@@ -13,13 +13,15 @@
         body { 
             margin: 0; 
             padding: 0;
-            background-color: #0B0F19;
+            background-color: #0B0F19; /* Deep Cinematic Dark Slate */
             background-image: -webkit-radial-gradient(circle at top, #1E293B 0%, #0B0F19 100%);
             background-image: radial-gradient(circle at top, #1E293B 0%, #0B0F19 100%);
             color: #E2E8F0; /* Soft off-white */
             font-family: "Roboto", "Segoe UI", Arial, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
+
+        /* Fixed Top Bar using Flexbox to avoid float alignment bugs */
         .top-bar {
             background: #141B2D;
             padding: 0 24px;
@@ -71,12 +73,14 @@
             vertical-align: top;
             width: 270px;
             margin: 14px;
-            background: #1A2234;
-            border: 2px solid #2D3748;
+            background: #1A2234; /* Rich dark card background */
+            border: 2px solid #2D3748; /* Subtle border */
             border-radius: 10px;
             text-align: left;
             position: relative;
             overflow: hidden;
+            
+            /* GPU Acceleration for KitKat */
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
             -webkit-transform-style: preserve-3d;
@@ -98,6 +102,7 @@
             overflow: hidden;
         }
         
+        /* Ambient Vignette Gradient Mask */
         .card-thumb::after {
             content: '';
             position: absolute;
@@ -113,6 +118,8 @@
             height: 152px;
             object-fit: cover;
         }
+        
+        /* Centered Play Button wrapper */
         .play-icon {
             position: absolute;
             top: 50%; left: 50%;
@@ -122,6 +129,8 @@
             border-radius: 50%;
             border: 2px solid #84CC16;
             z-index: 2;
+
+            /* Flex alignment replaces unstable baseline line-height offsets */
             display: -webkit-box;
             display: -webkit-flex;
             display: flex;
@@ -135,9 +144,10 @@
         .play-icon svg {
             width: 22px;
             height: 22px;
-            margin-left: 2px;
+            margin-left: 2px; /* Corrects optical off-centering of triangles */
         }
 
+        /* Portal/Tools Icon Container */
         .tools-icon {
             position: absolute;
             top: 50%; left: 50%;
@@ -238,6 +248,8 @@
             color: #38BDF8; 
             border: 1px solid #1D283A;
         }
+        
+        /* Flex containers for side-by-side action buttons */
         .action-container {
             display: -webkit-box;
             display: -webkit-flex;
@@ -339,6 +351,16 @@
                         <div class="card-meta">
                             {{ video.duration_human }} &nbsp;|&nbsp; {{ video.file_size_human }}{{ video.watched_label }}
                         </div>
+                        {% if video.subtitles.all %}
+                            <div class="subtitles-list" style="margin-top: -6px; margin-bottom: 12px; font-size: 11px; color: #94A3B8;">
+                                🗣️ Subs: 
+                                {% for sub in video.subtitles.all %}
+                                    <span class="sub-indicator" style="background: #2D3748; padding: 2px 6px; border-radius: 4px; margin-right: 4px; color: #E2E8F0; font-weight: bold; border: 1px solid #4A5568;">
+                                        {{ sub.language_code|upper }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
 
                         {% if video.status == 'completed' %}
                             <div class="action-container">
@@ -451,6 +473,17 @@
                         html += '    <div class="card-meta">';
                         html += '      ' + v.duration_human + ' &nbsp;|&nbsp; ' + v.file_size_human + watchedLabel;
                         html += '    </div>';
+
+                        if (v.subtitles && v.subtitles.length > 0) {
+                            html += '    <div class="subtitles-list" style="margin-top: -6px; margin-bottom: 12px; font-size: 11px; color: #94A3B8;">';
+                            html += '      🗣️ Subs: ';
+                            for (var j = 0; j < v.subtitles.length; j++) {
+                                html += '        <span class="sub-indicator" style="background: #2D3748; padding: 2px 6px; border-radius: 4px; margin-right: 4px; color: #E2E8F0; font-weight: bold; border: 1px solid #4A5568; display: inline-block;">';
+                                html += '          ' + v.subtitles[j].language_code.toUpperCase();
+                                html += '        </span>';
+                            }
+                            html += '    </div>';
+                        }
 
                         if (v.status === 'completed') {
                             html += '    <div class="action-container">';

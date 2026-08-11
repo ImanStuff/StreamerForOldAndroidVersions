@@ -1,8 +1,10 @@
 import os
 import json
+import chardet
 import asyncio
 import requests
 import aiofiles
+import tempfile
 import mimetypes
 from bs4 import BeautifulSoup
 from django.utils.html import escape
@@ -14,15 +16,30 @@ from django.template.defaultfilters import filesizeformat
 from django.db.models import Sum, Max
 from django.contrib import messages
 from django.conf import settings
-from .models import Video, Logging
 from .manager import video_manager
+from .models import Video, Logging, Subtitle
 
 
 async def a_path_exists(path):
     return await sync_to_async(os.path.exists)(path)
 
+
+async def serve_subtitle(request: HttpRequest, subtitle_id):
+    try:
+        subtitle = await Subtitle.objects.aget(id=subtitle_id)
+    except Subtitle.DoesNotExist:
+        return HttpResponse("Subtitle not found", status=404)
+    file_path = await sync_to_async(subtitle.get_absolute_path)()
+    if not file_path or not await a_path_exists(file_path):
+        return HttpResponse("Subtitle file not found", status=404)
+
+    text = await asyncio.to_thread(read_and_fix_subtitle_text, file_path)
+    response = HttpResponse(text.encode('utf-8'), content_type='text/plain; charset=utf-8')
+    response['Cache-Control'] = 'no-cache'
+    return response
+
 async def video_list(request: HttpRequest):
-    videos = Video.objects.annotate(watched_time_db=Max('logger_video__watched_time')).order_by('-created_at')
+    videos = Video.objects.prefetch_related('subtitles').annotate(watched_time_db=Max('logger_video__watched_time')).order_by('-created_at')
     total_videos = await videos.acount()
     completed_videos = await videos.filter(status='completed').acount()
     total_size_task = await videos.aaggregate(total=Sum('file_size'))
@@ -39,6 +56,14 @@ async def video_list(request: HttpRequest):
                 except ValueError:
                     pass
             
+            subtitles_list = await sync_to_async(lambda: list(video.subtitles.all()))()
+            subtitles_data = [{
+                'id': str(sub.id),
+                'language_code': sub.language_code,
+                'language_name': sub.language_name,
+                'url': sub.get_subtitle_url()
+            } for sub in subtitles_list]
+            
             watched_time = video.watched_time_db or 0
             video_list_data.append({
                 'id': str(video.id),
@@ -49,6 +74,7 @@ async def video_list(request: HttpRequest):
                 'file_size_human': video.file_size_human,
                 'thumbnail_url': thumbnail_url,
                 'watched_time': watched_time,
+                'subtitles': subtitles_data,
             })
         return JsonResponse({
             'videos': video_list_data,
@@ -84,6 +110,116 @@ async def video_detail(request: HttpRequest, video_id: int):
         'title': video.title or '',
         'description': video.description or '',
     })
+
+
+def escape_ffmpeg_path(path: str) -> str:
+    return path.replace('\\', '/').replace(':', '\\:')
+
+
+def read_and_fix_subtitle_text(file_path: str) -> str:
+    with open(file_path, 'rb') as f:
+        raw = f.read()
+    if raw.startswith(b'\xef\xbb\xbf'):
+        return raw.decode('utf-8-sig', errors='replace')
+    if raw.startswith(b'\xff\xfe') or raw.startswith(b'\xfe\xff'):
+        return raw.decode('utf-16', errors='replace')
+    try:
+        return raw.decode('utf-8')
+    except UnicodeDecodeError:
+        pass
+    for enc in ('windows-1256', 'cp1256', 'windows-1252', 'iso-8859-1'):
+        try:
+            return raw.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    detected = chardet.detect(raw)
+    encoding = detected.get('encoding') or 'utf-8'
+    return raw.decode(encoding, errors='replace')
+
+async def stream_burned_video(request: HttpRequest, video_id: str):
+    try:
+        video = await Video.objects.aget(id=video_id)
+    except Video.DoesNotExist: 
+        return HttpResponse("Video not found", status=404)
+
+    subtitle_id = request.GET.get('sub_id')
+    try:
+        start_time = float(request.GET.get('start', '0.0'))
+    except ValueError:
+        start_time = 0.0
+
+    try:
+        subtitle = await Subtitle.objects.aget(id=subtitle_id)
+    except Subtitle.DoesNotExist:
+        return HttpResponse("Subtitle not found", status=404)
+
+    video_path = await sync_to_async(video.get_absolute_path)()
+    sub_path = await sync_to_async(subtitle.get_absolute_path)()
+    
+    if not await a_path_exists(video_path) or not await a_path_exists(sub_path):
+        return HttpResponse("File missing on server", status=404)
+    
+    sub_text = await asyncio.to_thread(read_and_fix_subtitle_text, sub_path)
+    
+    temp_sub = tempfile.NamedTemporaryFile(suffix='.srt', delete=False, mode='w', encoding='utf-8')
+    temp_sub.write(sub_text)
+    temp_sub.close()
+    clean_sub_path = temp_sub.name.replace('\\', '/')
+    os.chmod(clean_sub_path, 0o644)
+
+    async def ffmpeg_stream_generator():
+        style = r"FontSize=22\,PrimaryColour=&H00FFFFFF\,OutlineColour=&H00000000\,BorderStyle=1\,Outline=2"
+        
+        cmd = [
+            'ffmpeg', '-y',
+            '-ss', str(start_time),
+            '-copyts',
+            '-i', video_path,
+            '-vf', f"subtitles='{clean_sub_path}':force_style='{style}',setpts=PTS-STARTPTS",
+            '-af', 'asetpts=PTS-STARTPTS',
+            '-c:v', 'libx264',
+            '-profile:v', 'baseline',
+            '-level', '3.0',
+            '-pix_fmt', 'yuv420p',
+            '-preset', 'ultrafast',
+            '-tune', 'zerolatency',
+            '-threads', '2',
+            '-c:a', 'aac',
+            '-f', 'mp4',
+            '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
+            'pipe:1'
+        ]
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL,
+            limit=10**6
+        )
+        try:
+            while True:
+                chunk = await process.stdout.read(65536) 
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            try:
+                if process.returncode is None:
+                    process.kill()
+                    await process.wait()
+            except ProcessLookupError:
+                pass
+            if os.path.exists(temp_sub.name):
+                try:
+                    os.remove(temp_sub.name)
+                except OSError:
+                    pass
+
+    response = StreamingHttpResponse(ffmpeg_stream_generator(), content_type='video/mp4')
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
+
 async def stream_video(request: HttpRequest, video_id: int):
     try:
         video = await Video.objects.aget(id=video_id)
@@ -290,7 +426,7 @@ async def tv_remote_view(request: HttpRequest) -> HttpResponse:
 
 async def play_video(request: HttpRequest, video_id: str):
     try:
-        video = await Video.objects.aget(id=video_id)
+        video = await Video.objects.prefetch_related('subtitles').aget(id=video_id)
     except Video.DoesNotExist:
         return HttpResponse("Video not found", status=404)
 
@@ -303,9 +439,28 @@ async def play_video(request: HttpRequest, video_id: str):
     else:
         start_time = log_obj.watched_time if log_obj else 0.0
 
+    subtitles = await sync_to_async(lambda: list(video.subtitles.all()))()
+    selected_subtitle = None
+    requested_sub_id = request.GET.get('subtitle_id')
+    
+    if requested_sub_id:
+        try:
+            selected_subtitle = await sync_to_async(
+                lambda: video.subtitles.filter(id=requested_sub_id).first()
+            )()
+        except Exception:
+            pass
+    if not selected_subtitle and subtitles:
+        for sub in subtitles:
+            if sub.language_code == 'fa':
+                selected_subtitle = sub
+                break
+
     return render(request, './player.html', {
         'video': video,
-        'start_time': start_time
+        'start_time': start_time,
+        'subtitles': subtitles,
+        'selected_subtitle': selected_subtitle
     })
 
 @csrf_exempt

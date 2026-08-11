@@ -3,48 +3,200 @@
 <head>
     <title>Watching: {{ video.title }}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet" type="text/css" />
     <style>
         body { margin: 0; background: black; color: white; overflow: hidden; display: flex; flex-direction: column; height: 100vh; font-family: sans-serif; }
-        .header { background: #111; padding: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #D32F2F; }
+        .header { background: #111; padding: 12px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #D32F2F; flex-wrap: wrap; }
         .back-btn { color: white; text-decoration: none; font-size: 16px; background: #333; padding: 6px 15px; border-radius: 4px; font-weight: bold;}
-        .title { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
-        .player-container { flex: 1; display: flex; justify-content: center; align-items: center; background: #000; }
+        .title { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40%; }
+        .player-container { flex: 1; display: flex; justify-content: center; align-items: center; background: #000; position: relative; }
+        
         video { width: 100%; max-height: 100%; outline: none; }
+        .subtitle-options {
+            display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap;
+        }
+        .sub-btn { background: #222; color: #94A3B8; border: 2px solid #334155; padding: 6px 12px; border-radius: 4px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.2s ease; outline: none;}
+        .sub-btn:focus, .sub-btn:hover { border-color: #84CC16; background: #111; color: #FFFFFF; box-shadow: 0 0 10px rgba(132, 204, 22, 0.5); }
+        .sub-btn.active { background: #84CC16; color: #0B0F19; border-color: #84CC16; }
+        .back-btn:hover { background: #D32F2F; box-shadow: 0 0 10px rgba(211, 47, 47, 0.5); }
+        
+        #subtitle-overlay {
+            position: absolute; bottom: 10%; left: 5%; right: 5%; text-align: center;
+            pointer-events: none; z-index: 10; font-family: 'Vazirmatn', Arial, sans-serif;
+            font-weight: bold; font-size: 30px; color: #FFFFFF;
+            text-shadow: 2px 2px 2px #000, -2px -2px 2px #000, 2px -2px 2px #000, -2px 2px 2px #000, 0px 3px 5px rgba(0,0,0,0.8); line-height: 1.4;
+        }
+        #fs-btn {
+            position: absolute; right: 20px; top: 20px; background: rgba(0, 0, 0, 0.7); border: none; padding: 10px; border-radius: 6px; cursor: pointer; color: white; font-weight: bold; z-index: 20; opacity: 0; transition: 0.3s;
+        }
+        .player-container:hover #fs-btn { opacity: 1; }
+        #fs-btn:hover { background: rgba(132, 204, 22, 0.9); box-shadow: 0 0 10px rgba(132, 204, 22, 0.5); }
+        .tv-toggle { margin-right: 15px; display: flex; align-items: center; color: #ccc; font-size: 13px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="header">
         <a href="{% url 'video_list' %}" class="back-btn">&larr; BACK</a>
         <div class="title">{{ video.title }}</div>
+        
+        <div class="subtitle-options">
+            <label class="tv-toggle" title="Select this if the native video player blocks HTML Subs (Auto detected for TV)">
+                <input type="checkbox" id="tvModeCb" style="margin-right: 5px; cursor: pointer;">
+                TV Mode (Burn Subs)
+            </label>
+
+            {% if subtitles %}
+                <button class="sub-btn {% if not selected_subtitle %}active{% endif %}" 
+                        onclick="selectSub('', false, this, null)">
+                    None
+                </button>
+                {% for sub in subtitles %}
+                    <button class="sub-btn {% if selected_subtitle and selected_subtitle.id == sub.id %}active{% endif %}" 
+                            onclick="selectSub('{{ sub.get_subtitle_url }}', '{{ sub.language_code }}' === 'fa', this, '{{ sub.id }}')">
+                        {{ sub.language_name }}
+                    </button>
+                {% endfor %}
+            {% else %}
+                <span style="font-size: 12px; color: #666; font-weight: bold;">No Subs</span>
+            {% endif %}
+        </div>
     </div>
-    
-    <div class="player-container">
-        <video id="vidPlayer" controls autoplay preload="metadata">
+    <div class="player-container" id="playerContainer">
+        <video id="vidPlayer" controls controlsList="nofullscreen" autoplay preload="metadata" playsinline webkit-playsinline>
             <source src="{% url 'stream_video' video.id %}" type="video/mp4">
             Your browser does not support HTML5 video.
         </video>
+        <div id="subtitle-overlay"></div>
+        <button id="fs-btn" title="Toggle Fullscreen">⛶ Fullscreen</button>
     </div>
 
     <script>
         var player = document.getElementById('vidPlayer');
+        var playerContainer = document.getElementById('playerContainer');
+        var fsBtn = document.getElementById('fs-btn');
+        var tvModeCb = document.getElementById('tvModeCb');
+        
         var startTime = parseFloat("{{ start_time|default:'0' }}");
         var hasSetTime = false;
-
+        var isStreamBurned = false;
+        var streamOffsetTime = 0;
+        var isOldAndroid = /Android\s+[4-5]/i.test(navigator.userAgent) || /TV|Philips/i.test(navigator.userAgent);
+        if (isOldAndroid) tvModeCb.checked = true;
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                if (playerContainer.requestFullscreen) { playerContainer.requestFullscreen(); }
+                else if (playerContainer.webkitRequestFullscreen) { playerContainer.webkitRequestFullscreen(); }
+            } else {
+                if (document.exitFullscreen) { document.exitFullscreen(); }
+                else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
+            }
+        }
+        fsBtn.addEventListener('click', toggleFullScreen);
+        playerContainer.addEventListener('dblclick', toggleFullScreen);
         player.addEventListener('loadedmetadata', function() {
-            if (!hasSetTime && startTime > 0) {
+            if (!hasSetTime && startTime > 0 && !isStreamBurned) {
                 player.currentTime = startTime;
                 hasSetTime = true;
             }
         });
-
+    
         setInterval(function() {
             if (!player.paused && player.currentTime > 0) {
+                var actualTime = isStreamBurned ? (player.currentTime + streamOffsetTime) : player.currentTime;
                 var xhr = new XMLHttpRequest();
                 xhr.open("POST", "{% url 'log_video_time' video.id %}", true);
                 xhr.setRequestHeader("Content-Type", "application/json");
-                xhr.send(JSON.stringify({ time: player.currentTime }));
+                xhr.send(JSON.stringify({ time: actualTime }));
             }
         }, 5000);
+    
+        var cues = [];
+        var activeSubUrl = "{{ selected_subtitle.get_subtitle_url|default:'' }}";
+        var isInitialRTL = "{{ selected_subtitle.language_code }}" === "fa";
+        var subOverlay = document.getElementById('subtitle-overlay');
+        subOverlay.style.direction = isInitialRTL ? "rtl" : "ltr";
+        function parseSubtitles(text) {
+            var blocks = text.split(/\r?\n\r?\n/);
+            var parsedCues = [];
+            var timeRegex = /(\d{2}):(\d{2}):(\d{2})[,.](\d{3})\s*-->\s*(\d{2}):(\d{2}):(\d{2})[,.](\d{3})/;
+            for (var i = 0; i < blocks.length; i++) {
+                var block = blocks[i].trim();
+                if (!block) continue;
+                var lines = block.split(/\r?\n/);
+                var timeLineIndex = -1, match = null;
+                for (var j = 0; j < lines.length; j++) {
+                    var m = timeRegex.exec(lines[j]);
+                    if (m) { match = m; timeLineIndex = j; break; }
+                }
+                if (match && timeLineIndex !== -1) {
+                    var start = parseInt(match[1], 10) * 3600 + parseInt(match[2], 10) * 60 + parseInt(match[3], 10) + parseInt(match[4], 10) / 1000;
+                    var end = parseInt(match[5], 10) * 3600 + parseInt(match[6], 10) * 60 + parseInt(match[7], 10) + parseInt(match[8], 10) / 1000;
+                    var textLines = lines.slice(timeLineIndex + 1);
+                    var cleanText = textLines.join("<br>").trim().replace(/<v[^>]*>/g, '').replace(/<\/v>/g, '').replace(/<c[^>]*>/g, '').replace(/<\/c>/g, '');
+                    parsedCues.push({ start: start, end: end, text: cleanText });
+                }
+            }
+            return parsedCues;
+        }
+        function loadSubtitles(url) {
+            if (!url) { cues = []; subOverlay.innerHTML = ""; return; }
+            var xhr = new XMLHttpRequest(); xhr.open('GET', url, true);
+            if (xhr.overrideMimeType) { xhr.overrideMimeType('text/plain; charset=utf-8'); }
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) cues = parseSubtitles(xhr.responseText);
+            }; xhr.send();
+        }
+        if (activeSubUrl) loadSubtitles(activeSubUrl);
+    
+        player.addEventListener('timeupdate', function() {
+            if (cues.length === 0 || isStreamBurned) return;
+            var currentTime = player.currentTime; var currentText = "";
+            for (var i = 0; i < cues.length; i++) {
+                if (currentTime >= cues[i].start && currentTime <= cues[i].end) {
+                    currentText = cues[i].text; break;
+                }
+            }
+            subOverlay.innerHTML = currentText;
+        });
+    
+        function selectSub(url, isRtl, buttonElement, subId) {
+            var buttons = document.querySelectorAll('.sub-btn');
+            for (var i = 0; i < buttons.length; i++) buttons[i].className = buttons[i].className.replace(/\bactive\b/g, '').trim();
+            if (buttonElement) buttonElement.className += ' active';
+            
+            if (tvModeCb.checked && subId) {
+                var currentT = isStreamBurned ? (player.currentTime + streamOffsetTime) : player.currentTime;
+                
+                player.pause();
+                subOverlay.innerHTML = "";
+                streamOffsetTime = currentT; 
+                isStreamBurned = true;
+                
+                var srcUrl = "{% url 'stream_burned' video.id %}?sub_id=" + subId + "&start=" + currentT;
+                player.querySelector('source').src = srcUrl;
+                
+                player.load();
+                player.play();
+                
+            } else {
+                subOverlay.style.direction = isRtl ? "rtl" : "ltr";
+                loadSubtitles(url);
+                if (isStreamBurned) {
+                    var returnT = player.currentTime + streamOffsetTime;
+                    isStreamBurned = false; streamOffsetTime = 0;
+                    
+                    player.pause();
+                    player.querySelector('source').src = "{% url 'stream_video' video.id %}";
+                    player.load();
+                    
+                    player.onloadedmetadata = function() {
+                        player.currentTime = returnT;
+                        player.play();
+                        player.onloadedmetadata = null;
+                    };
+                }
+            }
+        }
     </script>
 </body>
 </html>

@@ -3,14 +3,70 @@ import uuid
 import logging
 from django.db import models
 from django.conf import settings
+from django.urls import reverse
 from django.core.files.storage import FileSystemStorage
 
 logger = logging.getLogger(__name__)
 
 class VideoStorage(FileSystemStorage):
     def __init__(self):
-        super().__init__(location=settings.STORAGE_SERVER_PATH)
-        
+        super().__init__(
+            location=settings.MEDIA_ROOT,
+            base_url=settings.MEDIA_URL
+        )
+
+class Subtitle(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    language_code = models.CharField(
+        max_length=10, 
+        default='en', 
+        help_text="e.g. 'en', 'fa'"
+    )
+    language_name = models.CharField(
+        max_length=50, 
+        help_text="e.g. 'English', 'Persian'"
+    )
+    subtitle_file = models.FileField(
+        upload_to='subtitles/',
+        storage=VideoStorage(),
+        max_length=500,
+        help_text="Upload .srt or .vtt subtitle files"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['language_name']
+
+    def __str__(self):
+        return f"{self.language_name} ({self.language_code})"
+    
+    def get_absolute_path(self):
+        if self.subtitle_file:
+            return self.subtitle_file.path
+        return None
+
+    def get_subtitle_url(self):
+        if self.subtitle_file:
+            return reverse('serve_subtitle', args=[str(self.id)])
+        return None
+    
+    def delete_subtitle_file(self):
+        if self.subtitle_file:
+            try:
+                file_path = self.get_absolute_path()
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    logger.info(f"Deleted subtitle file: {file_path}")
+                    return True
+                return True
+            except Exception as e:
+                logger.error(f"Error deleting subtitle file: {e}")
+        return False
+    
+    def delete(self, using=None, keep_parents=False):
+        self.delete_subtitle_file()
+        super().delete(using=using, keep_parents=keep_parents)
+
 
 class Video(models.Model):
     STATUS_CHOICES = [
@@ -39,6 +95,7 @@ class Video(models.Model):
         max_length=500
     )
     
+    subtitles = models.ManyToManyField(Subtitle, blank=True, related_name='videos')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     file_size = models.BigIntegerField(default=0)  # in bytes
     duration = models.IntegerField(default=0)  # in seconds
@@ -57,12 +114,12 @@ class Video(models.Model):
     
     def get_absolute_path(self):
         if self.video_file:
-            return os.path.join(settings.STORAGE_SERVER_PATH, self.video_file.name)
+            return self.video_file.path
         return None
     
     def get_video_url(self):
         if self.video_file:
-            return f"/media/{self.video_file.name}"
+            return self.video_file.url
         return None
     
     def delete_video_file(self):
@@ -94,10 +151,16 @@ class Video(models.Model):
     def save(self, *args, **kwargs):
         if not self.title and self.download_url:
             self.title = os.path.basename(self.download_url)
-        
         super().save(*args, **kwargs)
     
     def delete(self, using=None, keep_parents=False):
+        try:
+            for subtitle in self.subtitles.all():
+                if subtitle.videos.count() <= 1:
+                    subtitle.delete()
+        except Exception as e:
+            logger.error(f"Error deleting associated subtitles: {e}")
+            
         self.delete_video_file()
         self.delete_thumbnail_file()
         super().delete(using=using, keep_parents=keep_parents)
@@ -106,7 +169,6 @@ class Video(models.Model):
     def file_size_human(self):
         if self.file_size == 0:
             return "0 B"
-        
         size = float(self.file_size)
         for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
             if size < 1024.0:
@@ -118,19 +180,15 @@ class Video(models.Model):
     def duration_human(self):
         if self.duration == 0:
             return "0s"
-        
         hours = self.duration // 3600
         minutes = (self.duration % 3600) // 60
         seconds = self.duration % 60
-        
         if hours > 0:
             return f"{hours}h {minutes}m {seconds}s"
         elif minutes > 0:
             return f"{minutes}m {seconds}s"
         else:
             return f"{seconds}s"
-
-
 
 class Logging(models.Model):
     id = models.AutoField(primary_key=True)

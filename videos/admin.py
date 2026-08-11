@@ -4,8 +4,19 @@ from django.urls import path, reverse
 from django.db import transaction
 from django.shortcuts import redirect
 from django.contrib import messages
-from .models import Video
+from .models import Video, Subtitle
 from .manager import video_manager
+
+
+class SubtitleInline(admin.TabularInline):
+    model = Video.subtitles.through
+    extra = 1
+
+@admin.register(Subtitle)
+class SubtitleAdmin(admin.ModelAdmin):
+    list_display = ('language_name', 'language_code', 'subtitle_file', 'created_at')
+    search_fields = ('language_name', 'language_code')
+
 
 @admin.register(Video)
 class VideoAdmin(admin.ModelAdmin):
@@ -13,6 +24,9 @@ class VideoAdmin(admin.ModelAdmin):
     list_filter = ('status', 'created_at')
     search_fields = ('title', 'download_url')
     readonly_fields = ('status', 'file_size', 'created_at', 'updated_at', 'video_preview')
+    inlines = [SubtitleInline]
+    exclude = ('subtitles',)
+    
     fieldsets = (
         ('Video Information', {
             'fields': ('title', 'description', 'download_url')
